@@ -1,0 +1,133 @@
+https://mcp.supabase.com/mcp?project_ref=dhqqpentqbifpxqzkadz
+
+
+
+
+script de banco
+-- 1. Criação dos Tipos (Enums) para garantir consistência com o Frontend
+CREATE TYPE product_category AS ENUM (
+  'Mulher', 'Homem', 'Criança', 'Acessórios', 'Sapatos', 
+  'Desporto', 'Beleza', 'Casa & Decor'
+);
+
+CREATE TYPE product_condition AS ENUM (
+  'Novo com etiqueta', 'Como novo', 'Bom estado', 'Estado razoável'
+);
+
+CREATE TYPE payment_method AS ENUM ('mpesa', 'emola');
+CREATE TYPE order_status AS ENUM ('pendente', 'pago', 'entregue', 'cancelado');
+
+-- 2. Tabela de Perfis (Extensão da tabela auth.users do Supabase)
+-- Sempre que um usuário cria conta, vamos querer dados extras aqui
+CREATE TABLE public.profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  full_name TEXT,
+  avatar_url TEXT,
+  location TEXT DEFAULT 'Maputo',
+  bio TEXT,
+  rating DECIMAL(3, 2) DEFAULT 5.0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. Tabela de Produtos
+CREATE TABLE public.products (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  seller_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  price DECIMAL(10, 2) NOT NULL, -- Suporta meticais com centavos
+  original_price DECIMAL(10, 2),
+  image_url TEXT NOT NULL, -- URL da imagem no Supabase Storage
+  category product_category NOT NULL,
+  condition product_condition NOT NULL,
+  location TEXT DEFAULT 'Maputo',
+  sizes TEXT[], -- Array de textos, ex: ['M', 'L']
+  is_promoted BOOLEAN DEFAULT FALSE,
+  is_sold BOOLEAN DEFAULT FALSE,
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. Tabela de Favoritos (Likes)
+CREATE TABLE public.favorites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(user_id, product_id) -- Impede que o user dê like 2x no mesmo item
+);
+
+-- 5. Tabela de Avaliações (Reviews)
+CREATE TABLE public.reviews (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+  reviewer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 6. Tabela de Pedidos (Simulação de Transação)
+CREATE TABLE public.orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  buyer_id UUID REFERENCES public.profiles(id) NOT NULL,
+  product_id UUID REFERENCES public.products(id) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  method payment_method NOT NULL,
+  phone_number TEXT NOT NULL,
+  status order_status DEFAULT 'pendente',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 7. Configuração de Segurança (Row Level Security - RLS)
+-- Isso é CRUCIAL. Define quem pode ver e editar o que.
+
+-- Habilitar RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- Regras Profiles
+CREATE POLICY "Perfis são públicos para visualização" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Usuários podem editar seu próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Regras Products
+CREATE POLICY "Produtos são públicos" ON public.products FOR SELECT USING (true);
+CREATE POLICY "Usuários logados podem criar produtos" ON public.products FOR INSERT WITH CHECK (auth.uid() = seller_id);
+CREATE POLICY "Vendedores podem editar seus produtos" ON public.products FOR UPDATE USING (auth.uid() = seller_id);
+CREATE POLICY "Vendedores podem deletar seus produtos" ON public.products FOR DELETE USING (auth.uid() = seller_id);
+
+-- Regras Favorites
+CREATE POLICY "Ver meus favoritos" ON public.favorites FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Adicionar favorito" ON public.favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Remover favorito" ON public.favorites FOR DELETE USING (auth.uid() = user_id);
+
+-- 8. Trigger Automático para criar Perfil ao cadastrar Auth
+-- Quando alguém se registra no app, cria automaticamente uma linha na tabela profiles
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, avatar_url)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- 9. Storage (Armazenamento de Imagens)
+-- Você precisará criar um Bucket chamado 'product-images' no menu Storage do Supabase manualmente,
+-- mas aqui está a política de segurança para ele rodar via SQL se preferir:
+insert into storage.buckets (id, name, public) values ('product-images', 'product-images', true);
+
+create policy "Imagem pública"
+  on storage.objects for select
+  using ( bucket_id = 'product-images' );
+
+create policy "Usuário logado pode subir imagem"
+  on storage.objects for insert
+  with check ( bucket_id = 'product-images' AND auth.role() = 'authenticated' );
