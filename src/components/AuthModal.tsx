@@ -23,38 +23,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     setError('');
 
     try {
-      // Detecta se está em localhost ou produção
-      const isLocalhost = window.location.hostname === 'localhost';
-      const redirectUrl = isLocalhost
-        ? 'http://localhost:5173/auth/callback'  // Desenvolvimento
-        : 'https://desapegai.onrender.com/auth/callback'; // Produção (Render)
+    // Pega a URL base do Supabase das variáveis de ambiente
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    
+    // O redirect DEVE ser para o endpoint do Supabase, não seu site
+    const redirectUrl = `${supabaseUrl}/auth/v1/callback`;
+    
+    console.log('Supabase URL:', supabaseUrl);
+    console.log('Redirect URL:', 'https://dhqqpentqbifpxqzkadz.supabase.co/auth/v1/callback');
 
-      console.log('Redirect URL:', redirectUrl);
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { 
+        redirectTo: redirectUrl, // ⬅️ AGORA CORRETO: URL do Supabase
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
         }
-      });
-
-      if (error) {
-        setError(`Erro no login Google: ${error.message}`);
-        console.error('Erro Supabase:', error);
-      } else {
-        // Fecha o modal - o redirecionamento para Google acontece automaticamente
-        onClose();
       }
-    } catch (err: any) {
-      setError(`Erro inesperado: ${err.message}`);
-      console.error('Erro catch:', err);
-    } finally {
-      setLoading(false);
+    });
+
+    if (error) {
+      setError(`Erro no login Google: ${error.message}`);
+      console.error('Erro Supabase:', error);
+    } else {
+      // Fecha o modal - o redirecionamento para Google acontece automaticamente
+      onClose();
     }
+  } catch (err: any) {
+    setError(`Erro inesperado: ${err.message}`);
+    console.error('Erro catch:', err);
+  } finally {
+    setLoading(false);
+  }
   };
 
   // Login/Cadastro com Email
