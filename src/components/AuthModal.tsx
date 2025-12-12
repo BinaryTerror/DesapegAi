@@ -24,13 +24,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
 
     try {
     // Pega a URL base do Supabase das variáveis de ambiente
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    
-    // O redirect DEVE ser para o endpoint do Supabase, não seu site
-    const redirectUrl = `${supabaseUrl}/auth/v1/callback`;
-    
-    console.log('Supabase URL:', supabaseUrl);
-    console.log('Redirect URL:', 'https://dhqqpentqbifpxqzkadz.supabase.co/auth/v1/callback');
+    const redirectUrl = 'https://dhqqpentqbifpxqzkadz.supabase.co/auth/v1/callback'
+    console.log('Redirect URL FIXA:', redirectUrl);
    // skipBrowserRedirect: true 
 
     const { error } = await supabase.auth.signInWithOAuth({
