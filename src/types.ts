@@ -1,3 +1,4 @@
+// types.ts
 
 export enum Category {
   WOMEN = 'Mulher',
@@ -32,24 +33,46 @@ export interface Product {
   price: number;
   originalPrice?: number;
   imageUrl: string;
-  category: Category;
-  condition: Condition;
+  // Usamos '| string' para flexibilidade com dados do Supabase
+  category: Category | string; 
+  condition: Condition | string;
   sellerName: string;
   sellerPhone?: string;
   sellerRating: number;
-  location: string; // e.g., "Maputo", "Matola"
+  location: string; 
   likes: number;
   isPromoted?: boolean;
   reviews: Review[];
   sizes?: string[];
+  
+  // Status do produto (Obrigatório)
+  status: 'available' | 'sold'; 
+  
+  // ID do usuário que está vendendo (Obrigatório)
+  sellerId: string; 
+  
+  // Datas (Obrigatórias no seu fetch)
+  createdAt: string; 
+  
+  // Campo que estava faltando para o SellForm (Opcional)
+  updatedAt?: string; 
 }
 
 export interface CartItem extends Product {
   quantity: number;
 }
 
-export type ViewState = 'HOME' | 'SELL' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'SETTINGS' | 'FAVORITES';
+// Estados de visualização do App
+export type ViewState = 
+  | 'HOME' 
+  | 'SELL' 
+  | 'CART' 
+  | 'PROFILE' 
+  | 'PRODUCT_DETAIL' 
+  | 'SETTINGS' 
+  | 'FAVORITES';
 
+// Resposta da Inteligência Artificial Gemini
 export interface GeminiResponse {
   title: string;
   description: string;
@@ -57,7 +80,7 @@ export interface GeminiResponse {
   category: string;
 }
 
-
+// Perfil do Usuário no Banco de Dados
 export interface UserProfile {
   id: string;
   full_name: string;

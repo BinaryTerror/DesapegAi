@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Upload, Camera, Sparkles, Loader2, Trash2 } from 'lucide-react';
-import { Product, Category, Condition } from '../types'; // Ajuste o caminho se necessário (../types ou ../../types)
+import { Product, Category, Condition } from '../types';
 import { generateProductListing } from '../services/geminiService';
-import { supabase } from '../lib/supabaseClient'; // Ajuste o caminho se necessário
+import { supabase } from '../lib/supabaseClient';
 
 interface SellFormProps {
   onClose: () => void;
@@ -25,6 +25,18 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit }) => {
   // Estados de carregamento
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Estado para o usuário logado
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Buscar usuário logado
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
+  }, []);
 
   // 1. Função que lida com a escolha do arquivo
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,7 +101,7 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit }) => {
         .from('images')
         .getPublicUrl(filePath);
 
-      // C. Criar o objeto do produto
+      // C. Criar o objeto do produto COMPLETO
       const newProduct: Product = {
         id: '', // O banco gera isso
         title,
@@ -98,13 +110,21 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit }) => {
         imageUrl: publicUrl, // Agora usamos a URL real do Supabase!
         category,
         condition,
-        sellerName: 'Eu',
+        sellerName: currentUser?.user_metadata?.full_name || 'Anônimo',
         sellerRating: 5,
         location,
         sellerPhone: phone,
         likes: 0,
         reviews: [],
-        sizes: ['M'] // Hardcoded por enquanto
+        sizes: ['M'], // Hardcoded por enquanto
+        
+        // NOVOS CAMPOS OBRIGATÓRIOS
+        status: 'available',
+        sellerId: currentUser?.id || '',
+        createdAt: new Date().toISOString(),
+        
+        // Campo adicional para controle (opcional)
+        updatedAt: new Date().toISOString(),
       };
 
       // D. Enviar para o App (que vai salvar no banco)
@@ -251,6 +271,13 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit }) => {
             />
           </div>
 
+          {/* Indicador de quem está publicando (opcional, mas útil) */}
+          {currentUser && (
+            <div className="text-xs text-gray-500 border-t border-gray-100 dark:border-slate-700 pt-4">
+              Publicando como: <span className="font-bold">{currentUser.user_metadata?.full_name || currentUser.email}</span>
+            </div>
+          )}
+
           <div className="pt-4 border-t border-gray-100 dark:border-slate-700 flex gap-3">
              <button 
                type="button" 
@@ -261,7 +288,7 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit }) => {
              </button>
              <button 
                type="submit"
-               disabled={isUploading} 
+               disabled={isUploading || !currentUser} 
                className="flex-[2] py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold text-lg hover:scale-[1.02] transition-transform shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
              >
                {isUploading ? <Loader2 className="animate-spin" /> : <Upload size={20} />}

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
-import { PostLoginHandler } from './components/PostLoginHandler'
 import { AuthModal } from './components/AuthModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, ViewState, UserProfile } from './types';
@@ -12,8 +11,6 @@ import {
   MessageCircle, Trash2, ShoppingBag, ArrowRight, Sparkles, MapPin, Heart, 
   CheckCircle, Lock, Loader2, Smartphone, Info, XCircle, Save, PlusCircle, ChevronLeft
 } from 'lucide-react';
-
-
 
 // --- 1. COMPONENTE DE CALLBACK (Autenticação) ---
 const AuthCallback = () => {
@@ -71,9 +68,19 @@ function AppContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  // -- PERSISTÊNCIA DO CARRINHO (LocalStorage) --
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const savedCart = localStorage.getItem('desapegai_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+
+  // -- PERSISTÊNCIA DO PRODUTO SELECIONADO --
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    const savedProduct = localStorage.getItem('desapegai_selected_product');
+    return savedProduct ? JSON.parse(savedProduct) : null;
+  });
+
   const [likedProductIds, setLikedProductIds] = useState<Set<string>>(new Set());
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -84,14 +91,31 @@ function AppContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'emola' | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState('');
-
+  
   // AI Typewriter
   const [aiDescription] = useState("O melhor da moda circular em Moçambique.");
   const [displayedText, setDisplayedText] = useState("");
 
-  // --- LOGIC: Auth & Data ---
+  // --- EFFECTS ---
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  // Save Cart to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('desapegai_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Save Selected Product to LocalStorage
+  useEffect(() => {
+    if (selectedProduct) {
+      localStorage.setItem('desapegai_selected_product', JSON.stringify(selectedProduct));
+    }
+  }, [selectedProduct]);
+
+  // Auth & Data
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -114,11 +138,13 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Carousel
   useEffect(() => {
     const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000);
     return () => clearInterval(timer);
   }, []);
 
+  // Typewriter
   useEffect(() => {
     let i = 0;
     setDisplayedText("");
@@ -131,6 +157,7 @@ function AppContent() {
     return () => clearInterval(interval);
   }, [aiDescription]);
 
+  // Dark Mode
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -186,15 +213,24 @@ function AppContent() {
     }
   };
 
+  // App.tsx
+
   async function fetchProducts() {
     setIsLoading(true);
-    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
     if (data) {
-      const mapped = data.map((item: any) => ({
+      // O TypeScript precisa saber que isso é um array de Product
+      const mapped: Product[] = data.map((item: any) => ({
         id: item.id,
         title: item.title,
         description: item.description,
         price: item.price,
+        // Conversão de snake_case (banco) para camelCase (types.ts)
+        originalPrice: item.original_price, 
         imageUrl: item.image_url,
         category: item.category,
         condition: item.condition,
@@ -203,10 +239,20 @@ function AppContent() {
         location: item.location || 'Maputo',
         sellerPhone: item.seller_phone,
         likes: item.likes || 0,
-        reviews: [],
-        sizes: item.sizes || []
+        reviews: [], // Supabase não retorna reviews nessa query simples
+        sizes: item.sizes || [],
+        
+        // --- AQUI ESTÁ A CORREÇÃO DO ERRO "MAPPED" ---
+        // Você precisa preencher os campos obrigatórios do types.ts:
+        sellerId: item.user_id, // Mapeia user_id do banco para sellerId
+        status: item.status || 'available',
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
       }));
+      
       setProducts(mapped);
+    } else if (error) {
+      console.error('Erro ao buscar produtos:', error);
     }
     setIsLoading(false);
   }
@@ -226,7 +272,8 @@ function AppContent() {
       condition: newProduct.condition,
       seller_name: userProfile?.full_name || user.user_metadata.full_name,
       seller_phone: userProfile?.whatsapp || newProduct.sellerPhone,
-      user_id: user.id
+      user_id: user.id,
+      status: 'available'
     };
 
     const { error } = await supabase.from('products').insert([dbProduct]);
@@ -235,6 +282,7 @@ function AppContent() {
       fetchProducts();
       navigate('/');
     } else {
+      console.error(error);
       showToast('Erro ao publicar.', 'error');
     }
   };
@@ -263,11 +311,13 @@ function AppContent() {
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
+    // Salva imediatamente no storage para garantir persistência
+    localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
     navigate('/product');
-    window.scrollTo(0,0);
   };
 
   const formatMoney = (amount: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
+  
   const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -284,11 +334,41 @@ function AppContent() {
   const handleWhatsAppCheckout = () => {
     const item = cart[0]; 
     if (!item) return;
+    
     const phone = item.sellerPhone || '865916062';
-    const text = `Olá! Vi seu anúncio "${item.title}" no DesapegAi. Ainda disponível?`;
-    window.open(`https://wa.me/258${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+    const text = `Olá! Vi seu anúncio no DesapegAi\n\nProduto: ${item.title}\nPreço: ${formatMoney(item.price)}\n\nAinda está disponível?`;
+    
+    const cleanedPhone = phone.replace(/\D/g, '');
+    const fullPhone = cleanedPhone.startsWith('258') ? cleanedPhone : `258${cleanedPhone}`;
+    const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`;
+    
+    window.open(whatsappUrl, '_blank');
     setCart([]);
     setShowPaymentModal(false);
+  };
+
+  const handleMarkAsSold = async (productId: string) => {
+    if (!user) {
+      showToast('Faça login para gerenciar seus anúncios', 'error');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ status: 'sold' })
+        .eq('id', productId)
+        .eq('user_id', user.id); // Garante que só o dono altera
+      
+      if (error) throw error;
+      
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'sold' } : p));
+      showToast('Produto marcado como vendido!', 'success');
+      
+    } catch (error: any) {
+      console.error('Erro:', error);
+      showToast('Erro ao atualizar: ' + error.message, 'error');
+    }
   };
 
   const handlePayment = () => {
@@ -351,7 +431,6 @@ function AppContent() {
       )}
       
       <main className="pt-20 pb-24 md:pb-8 px-4 max-w-7xl mx-auto min-h-[calc(100vh-80px)]">
-        <Route path="/auth/post-login" element={<PostLoginHandler />} />
         <Routes>
           {/* --- HOME ROUTE --- */}
           <Route path="/" element={
@@ -382,7 +461,16 @@ function AppContent() {
                ) : (
                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {filteredProducts.map(p => (
-                        <ProductCard key={p.id} product={p} onAddToCart={addToCart} onClick={handleProductClick} isLiked={likedProductIds.has(p.id)} onToggleLike={toggleLike} />
+                        <ProductCard 
+                          key={p.id} 
+                          product={p} 
+                          onAddToCart={addToCart} 
+                          onClick={handleProductClick} 
+                          isLiked={likedProductIds.has(p.id)} 
+                          onToggleLike={toggleLike}       
+                          currentUserId={user?.id}
+                          onMarkAsSold={handleMarkAsSold} 
+                        />
                     ))}
                  </div>
                )}
@@ -401,7 +489,7 @@ function AppContent() {
                         <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden">
                             {cart.map(item => (
                                 <div key={item.id} className="flex items-center p-4 border-b dark:border-slate-700">
-                                    <img src={item.imageUrl} className="w-16 h-16 rounded-lg object-cover" />
+                                    <img src={item.imageUrl} className="w-16 h-16 rounded-lg object-cover" alt={item.title} />
                                     <div className="ml-4 flex-1">
                                         <h3 className="font-bold">{item.title}</h3>
                                         <div className="text-indigo-600 font-bold">{formatMoney(item.price)}</div>
@@ -426,7 +514,7 @@ function AppContent() {
                     <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-medium"><ChevronLeft size={20} /> Voltar</button>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2">
                         <div className="h-[50vh] md:h-[600px] bg-gray-100 dark:bg-slate-700 relative">
-                            <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" />
+                            <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" alt={selectedProduct.title} />
                             <button onClick={() => toggleLike(selectedProduct)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg"><Heart size={24} className={likedProductIds.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
                         </div>
                         <div className="p-8 flex flex-col">
@@ -439,7 +527,12 @@ function AppContent() {
                         </div>
                     </div>
                 </div>
-             ) : <div className="text-center py-20"><p>Produto não selecionado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>
+             ) : (
+                <div className="text-center py-20">
+                  <p>Produto não encontrado.</p>
+                  <button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar para Home</button>
+                </div>
+             )
           } />
 
           {/* --- SELL ROUTE --- */}
@@ -449,7 +542,7 @@ function AppContent() {
           <Route path="/profile" element={
             <div className="max-w-2xl mx-auto text-center">
                  <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 mb-6">
-                     <img src={userProfile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/100'} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
+                     <img src={userProfile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/100'} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" alt="Perfil" />
                      <h2 className="text-2xl font-bold">{userProfile?.full_name || 'Usuário'}</h2>
                      <p className="text-gray-500">{userProfile?.whatsapp || 'Sem contato'}</p>
                      <button onClick={() => setShowPhoneModal(true)} className="mt-4 px-6 py-2 border rounded-full font-bold text-sm hover:bg-gray-100 dark:hover:bg-slate-700">Editar Contato</button>
@@ -465,7 +558,16 @@ function AppContent() {
                 <h2 className="text-2xl font-bold mb-6">Meus Favoritos</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {products.filter(p => likedProductIds.has(p.id)).map(p => (
-                         <ProductCard key={p.id} product={p} onAddToCart={addToCart} onClick={handleProductClick} isLiked={true} onToggleLike={toggleLike} />
+                         <ProductCard 
+                          key={p.id} 
+                          product={p} 
+                          onAddToCart={addToCart} 
+                          onClick={handleProductClick} 
+                          isLiked={true} 
+                          onToggleLike={toggleLike}       
+                          currentUserId={user?.id}
+                          onMarkAsSold={handleMarkAsSold} 
+                        />
                     ))}
                     {likedProductIds.size === 0 && <p className="text-gray-500">Sem favoritos.</p>}
                 </div>

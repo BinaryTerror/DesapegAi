@@ -1,4 +1,4 @@
-
+import { CheckCircle, ShoppingBag } from 'lucide-react';
 import React from 'react';
 import { Heart, MapPin, ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
@@ -9,6 +9,8 @@ interface ProductCardProps {
   onClick: (product: Product) => void;
   isLiked?: boolean;
   onToggleLike?: (product: Product) => void;
+    currentUserId?: string; // ID do usuário logado
+  onMarkAsSold?: (productId: string) => void; // callback
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick, isLiked, onToggleLike }) => {
@@ -18,7 +20,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
+    
   };
+
+
 
   return (
     <div 
