@@ -1,0 +1,8 @@
+{
+  "name": "DesapegAi - Moda Circular Moçambique",
+  "description": "O maior app de compra e venda de roupas usadas em Moçambique. Pague via M-Pesa ou e-Mola. Estilo Shein, economia Vinted.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
