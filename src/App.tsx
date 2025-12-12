@@ -3,13 +3,17 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
+import { PostLoginHandler } from './components/PostLoginHandler'
 import { AuthModal } from './components/AuthModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, ViewState, UserProfile } from './types';
+
 import { 
   MessageCircle, Trash2, ShoppingBag, ArrowRight, Sparkles, MapPin, Heart, 
   CheckCircle, Lock, Loader2, Smartphone, Info, XCircle, Save, PlusCircle, ChevronLeft
 } from 'lucide-react';
+
+
 
 // --- 1. COMPONENTE DE CALLBACK (Autenticação) ---
 const AuthCallback = () => {
@@ -347,6 +351,7 @@ function AppContent() {
       )}
       
       <main className="pt-20 pb-24 md:pb-8 px-4 max-w-7xl mx-auto min-h-[calc(100vh-80px)]">
+        <Route path="/auth/post-login" element={<PostLoginHandler />} />
         <Routes>
           {/* --- HOME ROUTE --- */}
           <Route path="/" element={

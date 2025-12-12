@@ -31,6 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess }) => {
     
     console.log('Supabase URL:', supabaseUrl);
     console.log('Redirect URL:', 'https://dhqqpentqbifpxqzkadz.supabase.co/auth/v1/callback');
+   // skipBrowserRedirect: true 
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
