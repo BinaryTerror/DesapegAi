@@ -1,7 +1,7 @@
-import { CheckCircle, ShoppingBag } from 'lucide-react';
 import React from 'react';
-import { Heart, MapPin, ShoppingCart } from 'lucide-react';
+import { CheckCircle, ShoppingBag, Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
+import DOMPurify from 'dompurify'; // Importante para segurança
 
 interface ProductCardProps {
   product: Product;
@@ -9,8 +9,8 @@ interface ProductCardProps {
   onClick: (product: Product) => void;
   isLiked?: boolean;
   onToggleLike?: (product: Product) => void;
-    currentUserId?: string; // ID do usuário logado
-  onMarkAsSold?: (productId: string) => void; // callback
+  currentUserId?: string;
+  onMarkAsSold?: (productId: string) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick, isLiked, onToggleLike }) => {
@@ -20,10 +20,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
-    
   };
 
-
+  // Sanitiza a descrição para evitar injeção de scripts (XSS)
+  const sanitizedDescription = DOMPurify.sanitize(product.description || '');
 
   return (
     <div 
@@ -77,7 +77,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
           <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors mb-1">
             {product.title}
           </h3>
-          <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{product.category} • {product.condition}</p>
+          <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+            {product.category} • {product.condition}
+          </p>
         </div>
 
         <div className="mt-2 mb-2">

@@ -1,61 +1,61 @@
 {
-  "hash": "4aa69833",
+  "hash": "fa032aad",
   "configHash": "efe6269a",
-  "lockfileHash": "43511d01",
-  "browserHash": "c3da4e61",
+  "lockfileHash": "20d541ac",
+  "browserHash": "3f242a9f",
   "optimized": {
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "ed456014",
+      "fileHash": "8bddcbcf",
       "needsInterop": true
     },
     "react-dom": {
       "src": "../../node_modules/react-dom/index.js",
       "file": "react-dom.js",
-      "fileHash": "46964aae",
+      "fileHash": "486a04b6",
       "needsInterop": true
     },
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "ea4ed804",
+      "fileHash": "f40f3826",
       "needsInterop": true
     },
     "react/jsx-runtime": {
       "src": "../../node_modules/react/jsx-runtime.js",
       "file": "react_jsx-runtime.js",
-      "fileHash": "045e6d9a",
+      "fileHash": "744950f7",
       "needsInterop": true
-    },
-    "@google/genai": {
-      "src": "../../node_modules/@google/genai/dist/web/index.mjs",
-      "file": "@google_genai.js",
-      "fileHash": "c7fbc7c3",
-      "needsInterop": false
     },
     "@supabase/supabase-js": {
       "src": "../../node_modules/@supabase/supabase-js/dist/esm/wrapper.mjs",
       "file": "@supabase_supabase-js.js",
-      "fileHash": "d8458225",
+      "fileHash": "bab0508e",
+      "needsInterop": false
+    },
+    "dompurify": {
+      "src": "../../node_modules/dompurify/dist/purify.es.mjs",
+      "file": "dompurify.js",
+      "fileHash": "9a92598a",
       "needsInterop": false
     },
     "lucide-react": {
       "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
       "file": "lucide-react.js",
-      "fileHash": "b34095e6",
+      "fileHash": "f7eea9ce",
       "needsInterop": false
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "19db99a3",
+      "fileHash": "b23176d2",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.mjs",
       "file": "react-router-dom.js",
-      "fileHash": "f68de632",
+      "fileHash": "cee2c4a6",
       "needsInterop": false
     }
   },
