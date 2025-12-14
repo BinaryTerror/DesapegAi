@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Usamos uma string vazia como fallback para o site não quebrar na hora
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ""
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ""
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+// MUDANÇA AQUI: Adicionei o _ANON_ no nome
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY 
 
-
-console.log("Supabase URL:", supabaseUrl);
-console.log("Supabase Key existe?", supabaseKey.length > 0 ? "Sim" : "Não");
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Faltam as variáveis de ambiente do Supabase no arquivo .env')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
