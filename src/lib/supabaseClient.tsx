@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-// O Vite usa "import.meta.env" para ler as variáveis do arquivo .env
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
+// Usamos uma string vazia como fallback para o site não quebrar na hora
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ""
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ""
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Faltam as variáveis de ambiente do Supabase no arquivo .env')
-}
+
+console.log("Supabase URL:", supabaseUrl);
+console.log("Supabase Key existe?", supabaseKey.length > 0 ? "Sim" : "Não");
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
