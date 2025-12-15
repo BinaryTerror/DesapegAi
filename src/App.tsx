@@ -13,7 +13,7 @@ import {
   ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
   Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
   Package, MapPin, MessageCircle, Star, Send, Sparkles, ChevronLeft, AlertTriangle, 
-  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X
+  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy 
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -39,9 +39,9 @@ const formatMoney = (amount: number) => {
 
 // --- COMPONENTES AUXILIARES ---
 
-// 1. Footer Minimalista e Discreto
+// 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
-  <footer className="mt-auto py-6 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+  <footer className="py-10 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
       
       <div className="flex items-center gap-1">
@@ -57,12 +57,11 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
       </div>
 
       <div className="flex gap-6">
-        <span>© 2025 DesapegAí Todos os direitos reservados</span>
+        <span>© 2025 DesapegAi</span>
         <button 
           onClick={onOpenAbout} 
           className="hover:text-indigo-600 transition-colors font-medium hover:underline"
-        >
-          Sobre nós
+        >Sobre nós
         </button>
       </div>
 
@@ -86,107 +85,83 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         </h2>
         
         <div className="space-y-6">
-          
-          {/* Card Lino Alfredo */}
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
-              <img 
-                src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" 
-                alt="Lino Alfredo" 
-                className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" 
-              />
+              <img src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" alt="Lino Alfredo" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
-            
-            <a 
-              href="https://linkedin.com/in/lino-alfredo-07335237a" 
-              target="_blank" 
-              rel="noreferrer" 
-              className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"
-            >
+            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
               <Linkedin size={18} /> Conectar no LinkedIn
             </a>
           </div>
 
-          {/* Card Alex Nhabinde */}
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
-              <img 
-                src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" 
-                alt="Alex Nhabinde" 
-                className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" 
-              />
+              <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
-            
-            <a 
-              href="http://piripiri.chat" 
-              target="_blank" 
-              rel="noreferrer" 
-              className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"
-            >
+            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
               <Globe size={18} /> Ver Portfolio
             </a>
           </div>
-
         </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
-          <p className="text-xs text-gray-400">© 2025 DesapegAi Team</p>
-        </div>
-
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
       </div>
     </div>
   );
 };
 
-// 3. Novo Menu de Categorias (Botão Único que Expande)
-const CategoryFilter = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
+// 3. Filtro de Categorias (Dropdown)
+const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="w-full mb-6">
-      {/* Botão Principal */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border ${
-          isOpen || activeCat 
-            ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200 dark:shadow-none' 
-            : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-white border-gray-200 dark:border-slate-700 hover:border-indigo-300'
-        }`}
-      >
-        <Filter size={18} />
-        {activeCat ? activeCat : "Filtrar por Categoria"}
-        {isOpen ? <ChevronUp size={16} className="ml-2"/> : <ChevronDown size={16} className="ml-2"/>}
-      </button>
+    <div className="w-full mb-8">
+      <div className="flex items-center justify-between">
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${
+            isOpen || activeCat 
+              ? 'bg-indigo-600 text-white shadow-indigo-200' 
+              : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'
+          }`}
+        >
+          <Filter size={18} />
+          {activeCat ? activeCat : 'Filtrar por Categoria'}
+          {isOpen ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
+        </button>
 
-      {/* Lista Expansível */}
-      {isOpen && (
-        <div className="mt-4 animate-slide-up p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xl">
-          <div className="flex flex-wrap gap-2">
+        {activeCat && (
+          <button 
+            onClick={() => onSelect(null)}
+            className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"
+          >
+            <X size={14} /> Limpar filtro
+          </button>
+        )}
+      </div>
+
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <button 
+            onClick={() => { onSelect(null); setIsOpen(false); }}
+            className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${!activeCat ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
+          >
+            Todas
+          </button>
+          {Object.values(Category).map(cat => (
             <button 
-              onClick={() => { onSelect(null); setIsOpen(false); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${!activeCat ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}
+              key={cat} 
+              onClick={() => { onSelect(cat); setIsOpen(false); }}
+              className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${activeCat === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 border-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'}`}
             >
-              Todas
+              {cat}
             </button>
-            
-            {Object.values(Category).map(cat => (
-              <button 
-                key={cat} 
-                onClick={() => { onSelect(cat); setIsOpen(false); }}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${activeCat === cat 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -275,7 +250,13 @@ function AppContent() {
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
         if (session?.user) handleUserLogin(session.user);
-        else { setUser(null); setUserProfile(null); }
+        else { 
+          // Limpa dados ao sair
+          setUser(null); 
+          setUserProfile(null);
+          // Opcional: Limpar carrinho ao sair? 
+          // setCart([]); 
+        }
       });
 
       await fetchProducts();
@@ -454,18 +435,28 @@ function AppContent() {
 
   const handleEditProduct = (product: Product) => { setEditingProduct(product); setShowSellForm(true); };
 
+  // ✅ CORREÇÃO: Lógica para evitar itens duplicados no carrinho
   const addToCart = (product: Product) => {
     setCart(prev => {
-      const isItemInCart = prev.some(item => item.id === product.id);
-      if (isItemInCart) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      // Verifica se o item já existe pelo ID (convertendo para String para segurança)
+      const existingItem = prev.find(item => String(item.id) === String(product.id));
+      
+      if (existingItem) {
+        // Se existe, retorna um novo array atualizando a quantidade do item específico
+        return prev.map(item => 
+          String(item.id) === String(product.id) 
+            ? { ...item, quantity: item.quantity + 1 } 
+            : item
+        );
       }
+      
+      // Se não existe, adiciona como novo item
       return [...prev, { ...product, quantity: 1 }];
     });
     showToast('Adicionado ao carrinho!', 'success');
   };
 
-  const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.id !== id));
+  const removeFromCart = (id: string) => setCart(prev => prev.filter(i => String(i.id) !== String(id)));
   
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
@@ -488,13 +479,21 @@ function AppContent() {
   const handleWhatsAppCheckout = () => {
     const item = cart[0];
     if (!item) return;
-    const sellerPhone = item.sellerPhone || '841234567';
+    const sellerPhone = item.sellerPhone || '8xxxxxxxx';
     const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
     const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAi. Ainda está disponível?`;
     window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setCart([]); 
     setShowPaymentModal(false);
     showToast('Redirecionando...', 'success');
+  };
+
+  const handleCopyPhone = () => {
+    const item = cart[0];
+    if (!item) return;
+    const phone = item.sellerPhone || '8xxxxxxx';
+    navigator.clipboard.writeText(phone);
+    showToast('Número copiado!', 'success');
   };
 
   const filteredProducts = products.filter(p => {
@@ -524,13 +523,14 @@ function AppContent() {
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative">
              <button onClick={() => setShowPhoneModal(false)} className="absolute top-4 right-4"><XCircle /></button>
              <h2 className="text-xl font-bold mb-4">Atualizar WhatsApp</h2>
-             <input type="tel" value={tempPhone} onChange={e => setTempPhone(e.target.value)} placeholder="841234567" className="w-full p-3 border rounded-xl mb-4 dark:bg-slate-900" />
+             <input type="tel" value={tempPhone} onChange={e => setTempPhone(e.target.value)} placeholder="8xxxxxxxx" className="w-full p-3 border rounded-xl mb-4 dark:bg-slate-900" />
              <button onClick={handleSavePhone} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Salvar</button>
           </div>
         </div>
       )}
 
-      <main className="pt-24 px-4 max-w-7xl mx-auto w-full flex-grow">
+      {/* min-h-screen para manter o footer embaixo */}
+      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
             <>
@@ -555,10 +555,7 @@ function AppContent() {
               )}
               
               <div ref={productsSectionRef} className="pt-4">
-                
-                {/* 3. Componente de Categoria Novo (Botão Toggle) */}
-                <CategoryFilter activeCat={selectedCategory} onSelect={setSelectedCategory} />
-                
+                <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1">
                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2></div>
                    {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
@@ -719,9 +716,30 @@ function AppContent() {
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm">
-               <h3 className="text-xl font-bold mb-4">Finalizar no WhatsApp</h3>
-               <button onClick={handleWhatsAppCheckout} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><MessageCircle /> Iniciar Conversa</button>
-               <button onClick={() => setShowPaymentModal(false)} className="w-full mt-4 text-gray-500 font-bold">Cancelar</button>
+               <h3 className="text-xl font-bold mb-4 dark:text-white">Finalizar Compra</h3>
+               
+               <div className="flex flex-col gap-3">
+                 <button 
+                   onClick={handleWhatsAppCheckout} 
+                   className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors"
+                 >
+                   <MessageCircle size={20} /> Negociar no WhatsApp
+                 </button>
+
+                 <button 
+                   onClick={handleCopyPhone} 
+                   className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors"
+                 >
+                   <Copy size={20} /> Copiar Número
+                 </button>
+               </div>
+
+               <button 
+                 onClick={() => setShowPaymentModal(false)} 
+                 className="w-full mt-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold text-sm"
+               >
+                 Cancelar
+               </button>
             </div>
          </div>
       )}
