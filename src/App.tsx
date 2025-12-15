@@ -41,7 +41,7 @@ const formatMoney = (amount: number) => {
 
 // 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
-  <footer className="py-10 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+  <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
       
       <div className="flex items-center gap-1">
@@ -61,7 +61,8 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
         <button 
           onClick={onOpenAbout} 
           className="hover:text-indigo-600 transition-colors font-medium hover:underline"
-        >Sobre nós
+        >
+          Sobre nós
         </button>
       </div>
 
@@ -113,7 +114,7 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-// 3. Filtro de Categorias (Dropdown)
+// 3. Filtro de Categorias
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -184,8 +185,7 @@ function AppContent() {
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
   // States
-  const [newComment, setNewComment] = useState('');
-  const [newRating, setNewRating] = useState(5);  
+  const [newRating, setNewRating] = useState(5); // Removido newComment
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -251,11 +251,8 @@ function AppContent() {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
         if (session?.user) handleUserLogin(session.user);
         else { 
-          // Limpa dados ao sair
           setUser(null); 
           setUserProfile(null);
-          // Opcional: Limpar carrinho ao sair? 
-          // setCart([]); 
         }
       });
 
@@ -339,6 +336,7 @@ function AppContent() {
     showToast('Favoritos atualizados', 'info');
   };
 
+  // ✅ MODIFICADO: Apenas Estrelas (Sem Texto)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedProduct) return showToast('Erro', 'error');
@@ -348,21 +346,20 @@ function AppContent() {
             user_id: user.id,
             user_name: userProfile?.full_name || 'Usuário',
             rating: newRating,
-            comment: newComment
+            comment: "" // Envia vazio pois o usuário não digita mais
         }]);
         if (error) throw error;
         const newReview: Review = {
             id: Date.now().toString(),
             userName: userProfile?.full_name || 'Eu',
-            comment: newComment,
+            comment: "",
             rating: newRating,
             date: new Date().toLocaleDateString('pt-MZ')
         };
         setReviews([newReview, ...reviews]);
-        setNewComment('');
         setNewRating(5);
-        showToast('Comentário enviado!', 'success');
-    } catch (err) { console.error(err); showToast('Erro ao comentar', 'error'); }
+        showToast('Avaliação enviada!', 'success');
+    } catch (err) { console.error(err); showToast('Erro ao avaliar', 'error'); }
   };
 
   const handleNavigate = (newView: ViewState | 'ADMIN') => {
@@ -435,28 +432,18 @@ function AppContent() {
 
   const handleEditProduct = (product: Product) => { setEditingProduct(product); setShowSellForm(true); };
 
-  // ✅ CORREÇÃO: Lógica para evitar itens duplicados no carrinho
   const addToCart = (product: Product) => {
     setCart(prev => {
-      // Verifica se o item já existe pelo ID (convertendo para String para segurança)
-      const existingItem = prev.find(item => String(item.id) === String(product.id));
-      
-      if (existingItem) {
-        // Se existe, retorna um novo array atualizando a quantidade do item específico
-        return prev.map(item => 
-          String(item.id) === String(product.id) 
-            ? { ...item, quantity: item.quantity + 1 } 
-            : item
-        );
+      const isItemInCart = prev.some(item => item.id === product.id);
+      if (isItemInCart) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      
-      // Se não existe, adiciona como novo item
       return [...prev, { ...product, quantity: 1 }];
     });
     showToast('Adicionado ao carrinho!', 'success');
   };
 
-  const removeFromCart = (id: string) => setCart(prev => prev.filter(i => String(i.id) !== String(id)));
+  const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.id !== id));
   
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
@@ -491,7 +478,7 @@ function AppContent() {
   const handleCopyPhone = () => {
     const item = cart[0];
     if (!item) return;
-    const phone = item.sellerPhone || '8xxxxxxx';
+    const phone = item.sellerPhone || '8xxxxxxxx';
     navigator.clipboard.writeText(phone);
     showToast('Número copiado!', 'success');
   };
@@ -529,7 +516,6 @@ function AppContent() {
         </div>
       )}
 
-      {/* min-h-screen para manter o footer embaixo */}
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
@@ -634,22 +620,45 @@ function AppContent() {
                </div>
 
                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><MessageCircle /> Comentários</h3>
+                  {/* Título alterado para Avaliações */}
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
                   <div className="space-y-6 mb-8">
-                     {reviews.length === 0 ? <p className="text-gray-500">Sem comentários.</p> : reviews.map(r => (
+                     {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
                         <div key={r.id} className="border-b dark:border-slate-700 pb-4">
-                           <div className="flex justify-between mb-2"><span className="font-bold">{r.userName}</span><div className="flex text-yellow-400">{[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}</div></div>
-                           <p className="text-gray-600 dark:text-gray-300">{r.comment}</p>
+                           <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-gray-900 dark:text-white">{r.userName}</span>
+                              <div className="flex text-yellow-400">
+                                {[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}
+                              </div>
+                           </div>
+                           <p className="text-xs text-gray-400">{r.date}</p>
+                           {/* TEXTO DO COMENTÁRIO REMOVIDO DAQUI */}
                         </div>
                      ))}
                   </div>
                   
+                  {/* Formulário APENAS com Estrelas */}
                   {user ? (
-                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-4 rounded-xl">
-                        <div className="flex gap-2 mb-4">{[1,2,3,4,5].map(s => <button type="button" key={s} onClick={() => setNewRating(s)}><Star size={24} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} /></button>)}</div>
-                        <div className="flex gap-3"><input type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Comentar..." className="flex-1 p-3 rounded-xl border dark:bg-slate-800 dark:text-white" /><button type="submit" className="bg-indigo-600 text-white p-3 rounded-xl"><Send /></button></div>
+                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
+                        <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
+                        <div className="flex justify-center gap-2 mb-6">
+                           {[1,2,3,4,5].map(s => (
+                             <button type="button" key={s} onClick={() => setNewRating(s)} className="transform hover:scale-110 transition-transform">
+                               <Star size={32} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                             </button>
+                           ))}
+                        </div>
+                        {/* INPUT DE TEXTO REMOVIDO */}
+                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
+                           Enviar Avaliação
+                        </button>
                      </form>
-                  ) : <div className="text-center p-6"><p>Faça login para comentar.</p></div>}
+                  ) : (
+                    <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
+                       <p className="mb-3">Faça login para avaliar.</p>
+                       <button onClick={() => setShowAuthModal(true)} className="text-indigo-600 font-bold">Entrar</button>
+                    </div>
+                  )}
                </div>
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
@@ -716,30 +725,12 @@ function AppContent() {
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm">
-               <h3 className="text-xl font-bold mb-4 dark:text-white">Finalizar Compra</h3>
-               
+               <h3 className="text-xl font-bold mb-4">Finalizar no WhatsApp</h3>
                <div className="flex flex-col gap-3">
-                 <button 
-                   onClick={handleWhatsAppCheckout} 
-                   className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors"
-                 >
-                   <MessageCircle size={20} /> Negociar no WhatsApp
-                 </button>
-
-                 <button 
-                   onClick={handleCopyPhone} 
-                   className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-colors"
-                 >
-                   <Copy size={20} /> Copiar Número
-                 </button>
+                 <button onClick={handleWhatsAppCheckout} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><MessageCircle /> Iniciar Conversa</button>
+                 <button onClick={handleCopyPhone} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-white py-3 rounded-xl font-bold flex justify-center items-center gap-2"><Copy size={18}/> Copiar Número</button>
                </div>
-
-               <button 
-                 onClick={() => setShowPaymentModal(false)} 
-                 className="w-full mt-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-bold text-sm"
-               >
-                 Cancelar
-               </button>
+               <button onClick={() => setShowPaymentModal(false)} className="w-full mt-4 text-gray-500 font-bold">Cancelar</button>
             </div>
          </div>
       )}
