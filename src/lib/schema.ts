@@ -7,5 +7,5 @@ export const productSchema = z.object({
   category: z.enum(["Mulher", "Homem", "Criança", "Acessórios", "Calçados", "Casa"]),
   condition: z.enum(["Novo", "Como Novo", "Bom Estado", "Marcas de Uso"]),
   location: z.string().max(50),
-  sellerPhone: z.string().regex(/^8[2-7]\d{7}$/, "Número de Moçambique inválido (ex: 841234567)")
+  sellerPhone: z.string().regex(/^8[2-7]\d{7}$/, "Número de Moçambique inválido (ex: 8xxxxxxxx)")
 });

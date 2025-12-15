@@ -1,31 +1,39 @@
-// types.ts
-
+// Enum para Categorias (usado no Sidebar e Formulários)
 export enum Category {
   WOMEN = 'Mulher',
   MEN = 'Homem',
   KIDS = 'Criança',
-  ACCESSORIES = 'Acessórios',
   SHOES = 'Sapatos',
-  SPORTS = 'Desporto',
   BEAUTY = 'Beleza',
-  HOME = 'Casa & Decor'
+  HOME = 'Casa',
+  VEHICLES = 'Veículos',
+  TECH = 'Tecnologia',
+  SPORTS = 'Desporto',
+  OTHERS = 'Outras'
 }
+
+// Árvore de Subcategorias (usado no SellForm)
+export const CATEGORY_TREE: Record<string, string[]> = {
+  [Category.WOMEN]: ['Vestidos', 'Blusas', 'Calças', 'Saias', 'Acessórios'],
+  [Category.MEN]: ['Camisas', 'T-Shirts', 'Calças', 'Casacos', 'Ternos'],
+  [Category.KIDS]: ['Menino', 'Menina', 'Brinquedos', 'Escolar'],
+  [Category.SHOES]: ['Ténis', 'Sociais', 'Botas', 'Sandálias'],
+  [Category.BEAUTY]: ['Maquilhagem', 'Perfumes', 'Cabelo', 'Skincare'],
+  [Category.HOME]: ['Móveis', 'Decoração', 'Cozinha', 'Jardim'],
+  [Category.VEHICLES]: ['Carros', 'Motorizadas', 'Peças', 'Bicicletas'],
+  [Category.TECH]: ['Telemóveis', 'Laptops', 'Áudio', 'Fotografia'],
+  [Category.SPORTS]: ['Ginásio', 'Futebol', 'Equipamento', 'Roupa Desportiva'],
+  [Category.OTHERS]: ['Diversos', 'Serviços', 'Livros', 'Instrumentos']
+};
 
 export enum Condition {
-  NEW = 'Novo com etiqueta',
-  LIKE_NEW = 'Como novo',
-  GOOD = 'Bom estado',
-  FAIR = 'Estado razoável'
+  NEW = 'Novo',
+  LIKE_NEW = 'Como Novo',
+  GOOD = 'Bom Estado',
+  FAIR = 'Aceitável'
 }
 
-export interface Review {
-  id: string;
-  userName: string;
-  comment: string;
-  rating: number;
-  date: string;
-}
-
+// Interface do Produto
 export interface Product {
   id: string;
   title: string;
@@ -33,58 +41,43 @@ export interface Product {
   price: number;
   originalPrice?: number;
   imageUrl: string;
-  // Usamos '| string' para flexibilidade com dados do Supabase
-  category: Category | string; 
-  condition: Condition | string;
+  category: string;
+  subcategory?: string;
+  condition: string;
+  location: string;
+  sellerId: string;
   sellerName: string;
-  sellerPhone?: string;
-  sellerRating: number;
-  location: string; 
+  sellerPhone: string;
+  status: 'available' | 'sold';
+  createdAt: string;
   likes: number;
   isPromoted?: boolean;
-  reviews: Review[];
-  sizes?: string[];
-  
-  // Status do produto (Obrigatório)
-  status: 'available' | 'sold'; 
-  
-  // ID do usuário que está vendendo (Obrigatório)
-  sellerId: string; 
-  
-  // Datas (Obrigatórias no seu fetch)
-  createdAt: string; 
-  
-  // Campo que estava faltando para o SellForm (Opcional)
-  updatedAt?: string; 
 }
 
+// Interface do Carrinho
 export interface CartItem extends Product {
   quantity: number;
 }
 
-// Estados de visualização do App
-export type ViewState = 
-  | 'HOME' 
-  | 'SELL' 
-  | 'CART' 
-  | 'PROFILE' 
-  | 'PRODUCT_DETAIL' 
-  | 'SETTINGS' 
-  | 'FAVORITES';
-
-// Resposta da Inteligência Artificial Gemini
-export interface GeminiResponse {
-  title: string;
-  description: string;
-  suggestedPrice: number;
-  category: string;
-}
-
-// Perfil do Usuário no Banco de Dados
+// Interface do Perfil do Usuário
 export interface UserProfile {
   id: string;
   full_name: string;
-  avatar_url: string;
-  whatsapp: string | null;
-  reputation: number;
+  avatar_url?: string;
+  whatsapp?: string;
+  role: 'user' | 'admin';
+  is_unlimited: boolean;
+}
+
+// --- AQUI ESTÁ O QUE FALTAVA (ViewState) ---
+// Define as telas possíveis para navegação no App
+export type ViewState = 'HOME' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'FAVORITES' | 'SELL' | 'ADMIN' | 'SETTINGS';
+
+// Interface de Comentários
+export interface Review {
+  id: string;
+  userName: string;
+  comment: string;
+  rating: number;
+  date: string;
 }

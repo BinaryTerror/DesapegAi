@@ -1,87 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
 import { AuthModal } from './components/AuthModal';
+import { AdminPanel } from './components/AdminPanel';
 import { supabase } from './lib/supabaseClient';
-import { Product, CartItem, ViewState, UserProfile } from './types';
+import { Product, CartItem, UserProfile, Category, ViewState, Review } from './types';
+
+// Imports de ícones
+import { 
+  ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
+  Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
+  Package, MapPin, MessageCircle, Star, Send, Sparkles, ChevronLeft, AlertTriangle, 
+  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X
+} from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
-import { 
-  MessageCircle, Trash2, ShoppingBag, ArrowRight, Sparkles, MapPin, Heart, 
-  CheckCircle, Loader2, Smartphone, Info, XCircle, Save, PlusCircle, ChevronLeft, Package, Star, Send, Globe, Code, Linkedin, User, LogIn, Lock, Edit
-} from 'lucide-react';
-
-interface Review {
-  id: string;
-  user_name: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-}
-
-const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+// --- CONSTANTES ---
 
 const HERO_PHRASES = [
   "Roupas com história? Compra, vende, repete!",
   "Dá tchau ao velho, olá ao novo estilo!",
   "Moda circular: roda, gira, brilha!",
   "Transforma teu guarda-roupa em aventuras fashion!",
-  "Compra, vende, arrasa — e ainda recicla estilo!",
-  "Roupas que mudam de dono, mas não de charme.",
-  "Do teu armário para o mundo — estilo que gira!",
-  "Renova teu look sem esvaziar a carteira.",
-  "Vira, troca, brilha: moda circular à moçambicana!",
   "Estilo que roda: compra, vende, repete!"
 ];
-
-// --- MODAIS E COMPONENTES AUXILIARES ---
-const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><XCircle size={24} className="text-gray-400" /></button>
-        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">Quem Somos</h2>
-        <div className="space-y-8">
-          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="relative w-20 h-20 mx-auto mb-3"><img src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" alt="Lino Alfredo" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" /></div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3><p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Software Engineer</p>
-            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"><Linkedin size={18} /> Conectar no LinkedIn</a>
-          </div>
-          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <div className="relative w-20 h-20 mx-auto mb-3"><img src="https://cdn.icon-icons.com/icons2/2643/PNG/512/male_boy_person_people_avatar_icon_159358.png" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" /></div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3><p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Creator & Dev</p>
-            <a href="https://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver mais tarde</a>
-          </div>
-        </div>
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
-      </div>
-    </div>
-  );
-};
-
-const MenuDrawer = ({ isOpen, onClose, onOpenAbout }: { isOpen: boolean; onClose: () => void; onOpenAbout: () => void }) => {
-  if (!isOpen) return null;
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]" onClick={onClose} />
-      <div className="fixed top-0 left-0 h-full w-[75%] max-w-xs bg-white dark:bg-slate-900 shadow-2xl z-[100] transform transition-transform duration-300 animate-slide-right p-6">
-        <div className="flex justify-between items-center mb-8"><h2 className="text-xl font-black text-indigo-600">Menu</h2><button onClick={onClose}><XCircle size={24} className="text-gray-400" /></button></div>
-        <div className="space-y-2"><button onClick={() => { onClose(); onOpenAbout(); }} className="w-full text-left p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold flex items-center gap-3"><Info size={20} /> Quem Somos</button></div>
-      </div>
-    </>
-  );
-};
-
-const Footer = () => (<footer className="bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 py-8 mt-12"><div className="max-w-7xl mx-auto px-4 text-center"><h4 className="font-black text-lg text-gray-900 dark:text-white">DesapegAi Moçambique</h4></div></footer>);
-
-const AuthCallback = () => {
-  const navigate = useNavigate();
-  useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { if (session) navigate('/'); }); }, [navigate]);
-  return <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
-};
 
 const HERO_SLIDES = [
   { id: 1, image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1920&auto=format&fit=crop', title: 'Moda que conta história', subtitle: 'Encontre peças únicas em Moçambique' },
@@ -89,287 +33,701 @@ const HERO_SLIDES = [
   { id: 3, image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1920&auto=format&fit=crop', title: 'Economia Circular', subtitle: 'Sustentabilidade em primeiro lugar' }
 ];
 
+const formatMoney = (amount: number) => {
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
+};
+
+// --- COMPONENTES AUXILIARES ---
+
+// 1. Footer Minimalista e Discreto
+const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
+  <footer className="mt-auto py-6 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+    <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+      
+      <div className="flex items-center gap-1">
+        <span>Powered by</span>
+        <a 
+          href="http://piripiri.chat" 
+          target="_blank" 
+          rel="noreferrer"
+          className="font-bold text-indigo-600 hover:underline"
+        >
+          Otseven
+        </a>
+      </div>
+
+      <div className="flex gap-6">
+        <span>© 2025 DesapegAí Todos os direitos reservados</span>
+        <button 
+          onClick={onOpenAbout} 
+          className="hover:text-indigo-600 transition-colors font-medium hover:underline"
+        >
+          Sobre nós
+        </button>
+      </div>
+
+    </div>
+  </footer>
+);
+
+// 2. About Modal
+const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+        
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10">
+          <XCircle size={24} className="text-gray-400" />
+        </button>
+        
+        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">
+          Quem Somos
+        </h2>
+        
+        <div className="space-y-6">
+          
+          {/* Card Lino Alfredo */}
+          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative w-20 h-20 mx-auto mb-3">
+              <img 
+                src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" 
+                alt="Lino Alfredo" 
+                className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" 
+              />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
+            
+            <a 
+              href="https://linkedin.com/in/lino-alfredo-07335237a" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"
+            >
+              <Linkedin size={18} /> Conectar no LinkedIn
+            </a>
+          </div>
+
+          {/* Card Alex Nhabinde */}
+          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative w-20 h-20 mx-auto mb-3">
+              <img 
+                src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" 
+                alt="Alex Nhabinde" 
+                className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" 
+              />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
+            
+            <a 
+              href="http://piripiri.chat" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"
+            >
+              <Globe size={18} /> Ver Portfolio
+            </a>
+          </div>
+
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
+          <p className="text-xs text-gray-400">© 2025 DesapegAi Team</p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// 3. Novo Menu de Categorias (Botão Único que Expande)
+const CategoryFilter = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="w-full mb-6">
+      {/* Botão Principal */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border ${
+          isOpen || activeCat 
+            ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200 dark:shadow-none' 
+            : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-white border-gray-200 dark:border-slate-700 hover:border-indigo-300'
+        }`}
+      >
+        <Filter size={18} />
+        {activeCat ? activeCat : "Filtrar por Categoria"}
+        {isOpen ? <ChevronUp size={16} className="ml-2"/> : <ChevronDown size={16} className="ml-2"/>}
+      </button>
+
+      {/* Lista Expansível */}
+      {isOpen && (
+        <div className="mt-4 animate-slide-up p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xl">
+          <div className="flex flex-wrap gap-2">
+            <button 
+              onClick={() => { onSelect(null); setIsOpen(false); }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${!activeCat ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}
+            >
+              Todas
+            </button>
+            
+            {Object.values(Category).map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => { onSelect(cat); setIsOpen(false); }}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${activeCat === cat 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AuthCallback: React.FC = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) navigate('/'); 
+      else navigate('/?login_error=1');
+    });
+  }, [navigate]);
+  return <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
+};
+
+// --- APP CONTENT ---
+
 function AppContent() {
   const navigate = useNavigate();
-  const location = useLocation();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
+  // States
+  const [newComment, setNewComment] = useState('');
+  const [newRating, setNewRating] = useState(5);  
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showMenuDrawer, setShowMenuDrawer] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [tempPhone, setTempPhone] = useState('');
+
+  // Data
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => JSON.parse(localStorage.getItem('desapegai_cart') || '[]'));
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    const savedFavs = localStorage.getItem('desapegai_favorites');
+    return savedFavs ? new Set(JSON.parse(savedFavs)) : new Set();
+  });
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  // UI
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showSellForm, setShowSellForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'info'} | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showSellForm, setShowSellForm] = useState(false);
-
-  const [tempPhone, setTempPhone] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [newRating, setNewRating] = useState(5);
-  
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const savedCart = localStorage.getItem('desapegai_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
-    const savedProduct = localStorage.getItem('desapegai_selected_product');
-    return savedProduct ? JSON.parse(savedProduct) : null;
-  });
-  
-  const [likedProductIds, setLikedProductIds] = useState<Set<string>>(new Set());
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [toast, setToast] = useState<{msg: string, type: 'success' | 'error' | 'info'} | null>(null);
-  
+  // Payment
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  
+
+  // Hero Animation
   const [displayedText, setDisplayedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(100);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  const scrollToProducts = () => { productsSectionRef.current?.scrollIntoView({ behavior: 'smooth' }); };
-
-  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
-  useEffect(() => { localStorage.setItem('desapegai_cart', JSON.stringify(cart)); }, [cart]);
-  useEffect(() => { if (selectedProduct) { localStorage.setItem('desapegai_selected_product', JSON.stringify(selectedProduct)); fetchReviews(selectedProduct.id); } }, [selectedProduct]);
-
+  // --- EFEITOS ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => { if (session?.user) { setUser(session.user); fetchUserProfile(session.user.id); } });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) { setUser(session.user); fetchUserProfile(session.user.id); } else { setUser(null); setUserProfile(null); }
-    });
-    fetchProducts();
-    return () => subscription.unsubscribe();
+    const savedTheme = localStorage.getItem('desapegai_theme');
+    if (savedTheme === 'dark') setIsDarkMode(true);
   }, []);
 
-  useEffect(() => { const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000); return () => clearInterval(timer); }, []);
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('desapegai_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('desapegai_theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => { localStorage.setItem('desapegai_cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('desapegai_favorites', JSON.stringify(Array.from(favorites))); }, [favorites]);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) handleUserLogin(session.user);
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
+        if (session?.user) handleUserLogin(session.user);
+        else { setUser(null); setUserProfile(null); }
+      });
+
+      await fetchProducts();
+      return () => subscription.unsubscribe();
+    };
+    initializeApp();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleType = () => {
-      const i = loopNum % HERO_PHRASES.length;
-      const fullText = HERO_PHRASES[i];
+      const currentPhraseIndex = loopNum % HERO_PHRASES.length;
+      const fullText = HERO_PHRASES[currentPhraseIndex];
       setDisplayedText(isDeleting ? fullText.substring(0, displayedText.length - 1) : fullText.substring(0, displayedText.length + 1));
       setTypingSpeed(isDeleting ? 40 : 100);
-      if (!isDeleting && displayedText === fullText) { setTimeout(() => setIsDeleting(true), 2000); } else if (isDeleting && displayedText === '') { setIsDeleting(false); setLoopNum(loopNum + 1); setTypingSpeed(500); }
+      if (!isDeleting && displayedText === fullText) { setTimeout(() => setIsDeleting(true), 2000); }
+      else if (isDeleting && displayedText === '') { setIsDeleting(false); setLoopNum(loopNum + 1); setTypingSpeed(500); }
     };
     const timer = setTimeout(handleType, typingSpeed);
     return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, loopNum]);
+  }, [displayedText, isDeleting, loopNum, typingSpeed]);
 
-  useEffect(() => { if (isDarkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [isDarkMode]);
+  // --- HANDLERS ---
 
-  const getCurrentView = (): ViewState => 'HOME';
-
-  // --- NOVA LÓGICA DE NAVEGAÇÃO: FORÇA LOGIN NO VENDER ---
-  const handleNavigate = (newView: ViewState) => {
-    if (newView === 'SELL') { 
-        if (!user) {
-            showToast('Faça login para vender!', 'info');
-            setShowAuthModal(true); // Força Login
-        } else {
-            setEditingProduct(null);
-            setShowSellForm(true); 
-        }
-    } else {
-        const map: Record<string, string> = { 'HOME': '/', 'CART': '/cart', 'PROFILE': '/profile', 'PRODUCT_DETAIL': '/product', 'FAVORITES': '/favorites', 'SETTINGS': '/settings' };
-        if (map[newView]) navigate(map[newView]);
+  const handleUserLogin = async (authUser: any) => {
+    setUser(authUser);
+    const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+    if (data) {
+      setUserProfile(data);
+      if (!data.whatsapp) setShowPhoneModal(true);
     }
   };
 
-  async function fetchUserProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) { setUserProfile(data); if (!data.whatsapp) setShowPhoneModal(true); }
-  }
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from('products')
+        .select(`
+          id, title, description, price, originalPrice:original_price, imageUrl:image_url, category, subcategory, condition, 
+          location, sellerName:seller_name, sellerPhone:seller_phone, sellerRating:seller_rating, 
+          likes, status, sellerId:user_id, createdAt:created_at
+        `)
+        .neq('status', 'sold')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setProducts(data as any);
+    } catch (error: any) { 
+      console.error("Erro buscar produtos:", error.message);
+    } finally { setIsLoading(false); }
+  };
+
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleSavePhone = async () => {
-    if (tempPhone.length < 9) { showToast('Digite um número válido.', 'error'); return; }
+    if (tempPhone.length < 9) return showToast('Inválido', 'error');
     const { error } = await supabase.from('profiles').update({ whatsapp: tempPhone }).eq('id', user.id);
-    if (!error) { showToast('Número salvo!', 'success'); setShowPhoneModal(false); if (userProfile) setUserProfile({ ...userProfile, whatsapp: tempPhone }); } else { showToast('Erro ao salvar.', 'error'); }
+    if (!error) {
+      setUserProfile(prev => prev ? { ...prev, whatsapp: tempPhone } : null);
+      setShowPhoneModal(false);
+      showToast('Salvo!');
+    }
   };
 
-  async function fetchProducts() {
-    setIsLoading(true);
-    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (data) {
-      const mapped: Product[] = data.map((item: any) => ({
-        id: item.id, title: item.title, description: item.description, price: item.price, originalPrice: item.original_price, imageUrl: item.image_url, category: item.category, condition: item.condition, sellerName: item.seller_name || 'Vendedor', sellerRating: item.seller_rating || 5.0, location: item.location || 'Maputo', sellerPhone: item.seller_phone, likes: item.likes || 0, reviews: [], sizes: item.sizes || [], sellerId: item.user_id, status: item.status || 'available', createdAt: item.created_at, updatedAt: item.updated_at
-      }));
-      setProducts(mapped);
-    }
-    setIsLoading(false);
-  }
-
-  async function fetchReviews(productId: string) {
-    const { data } = await supabase.from('reviews').select('*').eq('product_id', productId).order('created_at', { ascending: false });
-    if (data) setReviews(data); else setReviews([]);
-  }
+  const toggleFavorite = (productId: string) => {
+    if (!user) return setShowAuthModal(true);
+    setFavorites(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) newSet.delete(productId);
+      else newSet.add(productId);
+      return newSet;
+    });
+    showToast('Favoritos atualizados', 'info');
+  };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !selectedProduct) { showToast('Faça login para comentar.', 'info'); setShowAuthModal(true); return; }
-    const { error } = await supabase.from('reviews').insert([{ product_id: selectedProduct.id, user_id: user.id, user_name: userProfile?.full_name || user.email?.split('@')[0] || 'Usuário', rating: newRating, comment: newComment }]);
-    if (!error) { showToast('Comentário enviado!', 'success'); setNewComment(''); setNewRating(5); fetchReviews(selectedProduct.id); } else { showToast('Erro ao enviar.', 'error'); }
+    if (!user || !selectedProduct) return showToast('Erro', 'error');
+    try {
+        const { error } = await supabase.from('reviews').insert([{
+            product_id: selectedProduct.id,
+            user_id: user.id,
+            user_name: userProfile?.full_name || 'Usuário',
+            rating: newRating,
+            comment: newComment
+        }]);
+        if (error) throw error;
+        const newReview: Review = {
+            id: Date.now().toString(),
+            userName: userProfile?.full_name || 'Eu',
+            comment: newComment,
+            rating: newRating,
+            date: new Date().toLocaleDateString('pt-MZ')
+        };
+        setReviews([newReview, ...reviews]);
+        setNewComment('');
+        setNewRating(5);
+        showToast('Comentário enviado!', 'success');
+    } catch (err) { console.error(err); showToast('Erro ao comentar', 'error'); }
+  };
+
+  const handleNavigate = (newView: ViewState | 'ADMIN') => {
+    if (newView === 'SELL') { 
+      if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
+      else { setEditingProduct(null); setShowSellForm(true); }
+    } else if (newView === 'ADMIN') {
+      if (userProfile?.role === 'admin') navigate('/admin');
+      else showToast('Acesso negado', 'error');
+    } else {
+      const map: Record<string, string> = { 'HOME': '/', 'CART': '/cart', 'PROFILE': '/profile', 'PRODUCT_DETAIL': '/product', 'FAVORITES': '/favorites' };
+      if (map[newView]) navigate(map[newView]);
+    }
+  };
+
+  const handleSellSubmit = async (productData: any) => {
+    if (!user) return;
+    const payload = {
+       title: productData.title,
+       description: productData.description,
+       price: productData.price,
+       image_url: productData.imageUrl,
+       category: productData.category,
+       subcategory: productData.subcategory,
+       condition: productData.condition,
+       location: productData.location,
+       user_id: user.id,
+       seller_name: productData.sellerName,
+       seller_phone: productData.sellerPhone,
+       status: 'available'
+    };
+
+    let error;
+    if (editingProduct) {
+        const { error: err } = await supabase.from('products').update(payload).eq('id', editingProduct.id);
+        error = err;
+    } else {
+        const { error: err } = await supabase.from('products').insert([payload]);
+        error = err;
+    }
+
+    if (!error) {
+        showToast('Sucesso!', 'success');
+        fetchProducts();
+        setShowSellForm(false);
+        setEditingProduct(null);
+        navigate('/');
+    } else {
+        showToast('Erro ao salvar.', 'error');
+    }
+  };
+
+  const handleMarkAsSold = async (productId: string) => {
+    if (!window.confirm("Confirmar venda?")) return;
+    const { error } = await supabase.from('products').update({ status: 'sold' }).eq('id', productId);
+    if(!error) {
+        setProducts(prev => prev.map(p => p.id === productId ? {...p, status: 'sold'} : p));
+        showToast('Vendido!', 'success');
+    }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm("Apagar anúncio?")) return;
-    const { error } = await supabase.from('products').delete().eq('id', productId).eq('user_id', user.id);
-    if (!error) { setProducts(prev => prev.filter(p => p.id !== productId)); showToast('Removido!', 'success'); } else { showToast('Erro ao remover.', 'error'); }
-  };
-
-  const handleSellSubmit = async (newProduct: Product) => {
-    if (!user) { showToast('Faça login!', 'info'); setShowAuthModal(true); return; }
-    if (editingProduct) { setProducts(prev => prev.map(p => p.id === newProduct.id ? newProduct : p)); showToast('Produto atualizado!', 'success'); } 
-    else { fetchProducts(); showToast('Anúncio publicado!', 'success'); navigate('/'); }
-    setShowSellForm(false); setEditingProduct(null);
+    if (!window.confirm("Apagar?")) return;
+    const { error } = await supabase.from('products').delete().eq('id', productId);
+    if(!error) {
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        showToast('Apagado.', 'success');
+    }
   };
 
   const handleEditProduct = (product: Product) => { setEditingProduct(product); setShowSellForm(true); };
 
   const addToCart = (product: Product) => {
-    setCart(prev => { const exists = prev.find(i => i.id === product.id); return exists ? prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { ...product, quantity: 1 }]; });
+    setCart(prev => {
+      const isItemInCart = prev.some(item => item.id === product.id);
+      if (isItemInCart) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
     showToast('Adicionado ao carrinho!', 'success');
   };
 
   const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.id !== id));
-  const totalCart = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-
-  const toggleLike = (product: Product) => {
-    setLikedProductIds(prev => { const newSet = new Set(prev); newSet.has(product.id) ? newSet.delete(product.id) : newSet.add(product.id); return newSet; });
-    showToast(likedProductIds.has(product.id) ? 'Removido' : 'Favoritado', 'info');
+  
+  const handleProductClick = async (product: Product) => {
+    setSelectedProduct(product);
+    localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
+    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
+    if (data) {
+        setReviews(data.map((r: any) => ({
+            id: r.id,
+            userName: r.user_name,
+            comment: r.comment,
+            rating: r.rating,
+            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
+        })));
+    } else {
+        setReviews([]);
+    }
+    navigate('/product');
   };
 
-  const handleProductClick = (product: Product) => { setSelectedProduct(product); localStorage.setItem('desapegai_selected_product', JSON.stringify(product)); navigate('/product'); };
-  const formatMoney = (amount: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
-  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
-  
+  const handleWhatsAppCheckout = () => {
+    const item = cart[0];
+    if (!item) return;
+    const sellerPhone = item.sellerPhone || '841234567';
+    const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
+    const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAi. Ainda está disponível?`;
+    window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    setCart([]); 
+    setShowPaymentModal(false);
+    showToast('Redirecionando...', 'success');
+  };
+
   const filteredProducts = products.filter(p => {
-    const matchCat = selectedCategory ? p.category === selectedCategory : true;
-    const matchSearch = searchTerm ? p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.description.toLowerCase().includes(searchTerm.toLowerCase()) : true;
-    return matchCat && matchSearch && p.status !== 'sold';
+    const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
+    const matchesSearch = search ? p.title.toLowerCase().includes(search.toLowerCase()) : true;
+    return matchesCategory && matchesSearch;
   });
 
-  const handleWhatsAppCheckout = async () => {
-    const item = cart[0]; if (!item) return;
-    setPaymentProcessing(true);
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/secure-checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: item.id }) });
-      if (response.ok) { const data = await response.json(); window.open(data.url, '_blank'); setCart([]); setShowPaymentModal(false); } else {
-        const phone = item.sellerPhone || '865916062';
-        const text = `Olá! Vi seu anúncio no DesapegAi: ${item.title} (${formatMoney(item.price)}). Ainda disponível?`;
-        window.open(`https://wa.me/${phone.replace(/\D/g, '').replace(/^258/, '')}?text=${encodeURIComponent(text)}`, '_blank');
-        setCart([]); setShowPaymentModal(false);
-      }
-    } catch (error) {
-      console.error(error);
-      const phone = item.sellerPhone || '865916062';
-      const text = `Olá! Vi seu anúncio no DesapegAi: ${item.title} (${formatMoney(item.price)}). Ainda disponível?`;
-      window.open(`https://wa.me/${phone.replace(/\D/g, '').replace(/^258/, '')}?text=${encodeURIComponent(text)}`, '_blank');
-      setCart([]); setShowPaymentModal(false);
-    } finally { setPaymentProcessing(false); }
-  };
-
-  const handleMarkAsSold = async (productId: string) => {
-    if (!user) return;
-    const { error } = await supabase.from('products').update({ status: 'sold' }).eq('id', productId).eq('user_id', user.id);
-    if (!error) { setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'sold' } : p)); showToast('Vendido!', 'success'); }
-  };
-
-  const handlePayment = () => { setPaymentProcessing(true); setTimeout(() => { setPaymentProcessing(false); setPaymentSuccess(true); setTimeout(() => { setCart([]); setPaymentSuccess(false); setShowPaymentModal(false); navigate('/'); showToast('Confirmado!', 'success'); }, 2000); }, 2000); };
-
-  // AÇÃO DO BOTÃO FLUTUANTE (VENDER)
-  const handleFloatingSellClick = () => {
-    if (!user) {
-        showToast('Faça login para vender!', 'info');
-        setShowAuthModal(true);
-    } else {
-        setEditingProduct(null);
-        setShowSellForm(true);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
-      <Navbar cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)} onNavigate={handleNavigate} currentView={getCurrentView()} isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)} onSearch={setSearchTerm} user={user} userProfile={userProfile} onOpenAuth={() => setShowAuthModal(true)} onOpenMenu={() => setShowMenuDrawer(true)} />
-      <MenuDrawer isOpen={showMenuDrawer} onClose={() => setShowMenuDrawer(false)} onOpenAbout={() => setShowAboutModal(true)} />
-      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
-      {toast && (<div className="fixed top-20 right-4 z-[110] animate-slide-up"><div className={`px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 ${toast.type === 'success' ? 'bg-green-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'}`}>{toast.type === 'success' && <CheckCircle size={18} />} {toast.type === 'info' && <Info size={18} />} <span className="font-bold text-sm">{toast.msg}</span></div></div>)}
-      {showPhoneModal && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"><div className="bg-white dark:bg-slate-800 w-full max-w-md p-8 rounded-3xl shadow-2xl text-center"><div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6"><Smartphone className="text-green-600" size={32} /></div><h2 className="text-2xl font-black mb-2">Quase lá!</h2><p className="text-gray-500 mb-6">WhatsApp para contato:</p><input type="tel" placeholder="84 123 4567" value={tempPhone} onChange={(e) => setTempPhone(e.target.value)} className="w-full mb-4 px-4 py-3 bg-gray-50 dark:bg-slate-900 border rounded-xl dark:text-white" /><button onClick={handleSavePhone} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex justify-center gap-2"><Save size={20} /> Salvar</button></div></div>)}
-      
-      <main className="pt-24 px-4 max-w-7xl mx-auto flex-grow w-full">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
+      <Navbar 
+        cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
+        onNavigate={handleNavigate}
+        currentView="HOME"
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onSearch={setSearch}
+        user={user}
+        userProfile={userProfile}
+        onOpenAuth={() => setShowAuthModal(true)}
+      />
+
+      {toast && (<div className={`fixed top-24 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 font-bold animate-slide-up ${toast.type === 'success' ? 'bg-green-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>{toast.msg}</div>)}
+
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative">
+             <button onClick={() => setShowPhoneModal(false)} className="absolute top-4 right-4"><XCircle /></button>
+             <h2 className="text-xl font-bold mb-4">Atualizar WhatsApp</h2>
+             <input type="tel" value={tempPhone} onChange={e => setTempPhone(e.target.value)} placeholder="841234567" className="w-full p-3 border rounded-xl mb-4 dark:bg-slate-900" />
+             <button onClick={handleSavePhone} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Salvar</button>
+          </div>
+        </div>
+      )}
+
+      <main className="pt-24 px-4 max-w-7xl mx-auto w-full flex-grow">
         <Routes>
-          <Route path="/" element={<>{!searchTerm && (<div className="relative rounded-3xl overflow-hidden h-[400px] md:h-[500px] mb-8 md:mb-12 shadow-2xl group">{HERO_SLIDES.map((slide, index) => (<div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}><img src={slide.image} alt={slide.title} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/40 flex items-center px-6 md:px-16"><div className="max-w-2xl"><h2 className="text-3xl md:text-6xl font-black text-white mb-4">{slide.title}</h2><div className="text-indigo-300 font-mono text-xs md:text-sm flex items-center gap-2 mb-6 h-6"><Sparkles size={14} /> <span>{displayedText}</span><span className={`w-0.5 h-4 bg-indigo-300 ${isDeleting ? '' : 'animate-pulse'}`}></span></div><button onClick={scrollToProducts} className="bg-white text-black px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:scale-105 transition-transform">Explorar <ArrowRight size={18} /></button></div></div></div>))}</div>)}<div ref={productsSectionRef}><h3 className="text-2xl font-bold mb-6">{searchTerm ? 'Resultados' : 'Recentes'} <span className="text-gray-400 text-sm font-normal">({filteredProducts.length})</span></h3>{isLoading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600" size={48} /></div> : filteredProducts.length === 0 ? (<div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl"><ShoppingBag size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500">Nada encontrado.</p></div>) : (<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{filteredProducts.map(p => (<ProductCard key={p.id} product={p} onAddToCart={addToCart} onClick={handleProductClick} isLiked={likedProductIds.has(p.id)} onToggleLike={toggleLike} currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} />))}</div>)}</div></>} />
-          <Route path="/cart" element={<div className="max-w-2xl mx-auto"><div className="flex items-center gap-4 mb-8"><button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full"><ChevronLeft /></button><h2 className="text-2xl font-bold">Carrinho</h2></div>{cart.length === 0 ? <p className="text-center py-10 text-gray-500">Vazio.</p> : (<div className="space-y-6"><div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden">{cart.map(item => (<div key={item.id} className="flex items-center p-4 border-b dark:border-slate-700"><img src={item.imageUrl} className="w-16 h-16 rounded-lg object-cover" alt={item.title} /><div className="ml-4 flex-1"><h3 className="font-bold">{item.title}</h3><div className="text-indigo-600 font-bold">{formatMoney(item.price)}</div></div><button onClick={() => removeFromCart(item.id)} className="text-red-500 p-2"><Trash2 size={18} /></button></div>))}</div><div className="bg-white dark:bg-slate-800 rounded-3xl p-6"><div className="flex justify-between mb-6 font-bold text-xl"><span>Total</span><span>{formatMoney(totalCart)}</span></div><button onClick={() => setShowPaymentModal(true)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center items-center gap-2">Finalizar <ArrowRight /></button></div></div>)}</div>} />
-          <Route path="/product" element={selectedProduct ? (
-            <div>
-              <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors font-medium"><ChevronLeft size={24} /> Voltar</button>
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-8">
-                <div className="h-[50vh] md:h-[600px] bg-gray-100 dark:bg-slate-700 relative">
-                  <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" alt={selectedProduct.title} />
-                  <button onClick={() => toggleLike(selectedProduct)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg"><Heart size={24} className={likedProductIds.has(selectedProduct.id) ? "fill-red-500" : "text-gray-600"} /></button>
-                </div>
-                <div className="p-5 md:p-8 flex flex-col">
-                  <span className="text-indigo-600 font-bold text-xs uppercase mb-2">{selectedProduct.category}</span>
-                  <h1 className="text-3xl font-black mb-2">{selectedProduct.title}</h1>
-                  <div className="flex items-center gap-2 text-gray-500 mb-6"><MapPin size={14} /> {selectedProduct.location}</div>
-                  <p className="text-3xl font-black mb-6">{formatMoney(selectedProduct.price)}</p>
-                  <div className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
-                  {user && user.id === selectedProduct.sellerId ? (<button onClick={() => { handleDeleteProduct(selectedProduct.id); navigate('/'); }} className="bg-red-500 text-white py-4 rounded-xl font-bold flex justify-center gap-2"><Trash2 size={20} /> Excluir</button>) : (<button onClick={() => { addToCart(selectedProduct); navigate('/cart'); }} className="mt-auto bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center gap-2"><ShoppingBag size={20} /> Comprar</button>)}
-                </div>
-              </div>
-              
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-5 md:p-6 mb-24 md:mb-8">
-                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><MessageCircle /> Comentários</h3>
-                <div className="space-y-6 mb-10">
-                  {reviews.length === 0 ? (<p className="text-gray-500">Sem comentários.</p>) : (reviews.map(review => (<div key={review.id} className="border-b dark:border-slate-700 pb-4"><div className="flex items-center justify-between mb-2"><span className="font-bold text-sm">{review.user_name}</span><div className="flex text-yellow-400">{[...Array(5)].map((_, i) => (<Star key={i} size={14} className={i < review.rating ? "fill-yellow-400" : "text-gray-300"} />))}</div></div><p className="text-gray-600 dark:text-gray-300 text-sm">{review.comment}</p></div>)))}
-                </div>
-                {user ? (
-                  <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-4 rounded-xl">
-                    <div className="flex gap-2 mb-4">{[1, 2, 3, 4, 5].map((star) => (<button type="button" key={star} onClick={() => setNewRating(star)}><Star size={24} className={star <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} /></button>))}</div>
-                    <div className="flex flex-col md:flex-row gap-3">
-                      <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Comente..." className="w-full p-3 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white" required />
-                      <button type="submit" className="bg-indigo-600 text-white p-3 rounded-xl flex justify-center items-center"><Send size={20} /></button>
+          <Route path="/" element={
+            <>
+              {!search && (
+                <div className="relative rounded-3xl overflow-hidden h-[350px] md:h-[450px] mb-8 md:mb-12 shadow-2xl group">
+                  {HERO_SLIDES.map((slide, index) => (
+                    <div 
+                      key={slide.id}
+                      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                      <img src={slide.image} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center px-6 md:px-16">
+                        <div className="max-w-2xl text-white">
+                          <h2 className="text-3xl md:text-5xl font-black mb-4">{slide.title}</h2>
+                          <div className="flex items-center gap-2 text-indigo-300 font-mono text-sm h-8"><Sparkles size={16} /> <span>{displayedText}</span><span className="w-0.5 h-4 bg-indigo-300 animate-pulse"></span></div>
+                          <button onClick={() => productsSectionRef.current?.scrollIntoView({behavior: 'smooth'})} className="mt-8 bg-white text-black px-8 py-3 rounded-full font-bold flex items-center gap-2">Explorar <ArrowRight size={18} /></button>
+                        </div>
+                      </div>
                     </div>
-                  </form>
-                ) : (
-                  <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
-                    <p className="mb-3 text-gray-500 dark:text-gray-300 font-medium">Faça login para comentar e avaliar.</p>
-                    <button onClick={() => setShowAuthModal(true)} className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm hover:bg-indigo-700 transition flex items-center gap-2 mx-auto"><LogIn size={16} /> Fazer Login</button>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
+              
+              <div ref={productsSectionRef} className="pt-4">
+                
+                {/* 3. Componente de Categoria Novo (Botão Toggle) */}
+                <CategoryFilter activeCat={selectedCategory} onSelect={setSelectedCategory} />
+                
+                <div className="flex-1">
+                   <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2></div>
+                   {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
+                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {filteredProducts.map(p => (
+                          <ProductCard 
+                            key={p.id} 
+                            product={p} 
+                            onAddToCart={addToCart} 
+                            onClick={handleProductClick} 
+                            isLiked={favorites.has(p.id)} 
+                            onToggleLike={(prod) => toggleFavorite(prod.id)} 
+                            currentUserId={user?.id}
+                            onMarkAsSold={handleMarkAsSold}
+                            onDelete={handleDeleteProduct}
+                            onEdit={handleEditProduct}
+                          />
+                        ))}
+                     </div>
+                   }
+                </div>
               </div>
-            </div>
-          ) : (<div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>)} />
-          <Route path="/sell" element={<SellForm onClose={() => navigate('/')} onSubmit={handleSellSubmit} />} />
-          <Route path="/profile" element={
-            <div className="max-w-2xl mx-auto"><div className="text-center mb-10"><div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 inline-block w-full"><img src={userProfile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/100'} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" alt="Perfil" /><h2 className="text-2xl font-bold">{userProfile?.full_name || 'Usuário'}</h2><p className="text-gray-500 mb-4">{userProfile?.whatsapp || 'Sem contato'}</p><button onClick={() => setShowPhoneModal(true)} className="px-6 py-2 border rounded-full font-bold text-sm">Editar Contato</button></div></div><div><h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Package size={24} /> Meus Anúncios</h3>{products.filter(p => p.sellerId === user?.id).length === 0 ? (<div className="text-center py-10 bg-gray-100 dark:bg-slate-800 rounded-2xl"><p className="text-gray-500 mb-4">Nada por aqui.</p><button onClick={() => { setEditingProduct(null); setShowSellForm(true); }} className="text-indigo-600 font-bold">Começar a Vender</button></div>) : (<div className="space-y-4">{products.filter(p => p.sellerId === user?.id).map(myProd => (<div key={myProd.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm flex items-center gap-4"><img src={myProd.imageUrl} alt={myProd.title} className="w-16 h-16 rounded-lg object-cover bg-gray-200" /><div className="flex-1"><h4 className="font-bold line-clamp-1">{myProd.title}</h4><p className="text-indigo-600 font-bold text-sm">{formatMoney(myProd.price)}</p><span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${myProd.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{myProd.status === 'sold' ? 'Vendido' : 'Disponível'}</span></div><div className="flex items-center gap-2">{myProd.status !== 'sold' && (<><button onClick={() => handleMarkAsSold(myProd.id)} title="Marcar Vendido" className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><CheckCircle size={20} /></button><button onClick={() => handleEditProduct(myProd)} title="Editar" className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit size={20} /></button></>)}<button onClick={() => handleDeleteProduct(myProd.id)} title="Apagar" className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={20} /></button></div></div>))}</div>)}</div><div className="mt-10 text-center"><button onClick={() => navigate('/')} className="text-gray-500 font-bold">Voltar</button></div></div>
+            </>
           } />
-          <Route path="/favorites" element={<div><button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft size={20} /> Voltar</button><h2 className="text-2xl font-bold mb-6">Meus Favoritos</h2><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{products.filter(p => likedProductIds.has(p.id)).map(p => (<ProductCard key={p.id} product={p} onAddToCart={addToCart} onClick={handleProductClick} isLiked={true} onToggleLike={toggleLike} currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} />))}{likedProductIds.size === 0 && <p className="text-gray-500">Sem favoritos.</p>}</div></div>} />
+
+          <Route path="/cart" element={
+            <div className="max-w-2xl mx-auto">
+               <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft /> Voltar</button>
+               <h2 className="text-2xl font-bold mb-6">Carrinho ({cart.length})</h2>
+               {cart.length === 0 ? <p className="text-center text-gray-500">Vazio.</p> : (
+                 <div className="space-y-4">
+                    {cart.map(item => (
+                       <div key={item.id} className="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm">
+                          <img src={item.imageUrl} className="w-20 h-20 rounded-lg object-cover" alt="" />
+                          <div className="flex-1">
+                             <h3 className="font-bold">{item.title}</h3>
+                             <p className="text-indigo-600 font-bold">{formatMoney(item.price)}</p>
+                             <p className="text-xs text-gray-500">Qtd: {item.quantity}</p>
+                          </div>
+                          <button onClick={() => removeFromCart(item.id)} className="text-red-500 p-2"><Trash2 size={18} /></button>
+                       </div>
+                    ))}
+                    <div className="pt-6 border-t dark:border-slate-700">
+                        <div className="flex justify-between text-xl font-bold mb-4"><span>Total</span><span>{formatMoney(cart.reduce((a,b) => a + (b.price * b.quantity), 0))}</span></div>
+                        <button onClick={() => { if(cart.length > 0) setShowPaymentModal(true); }} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center items-center gap-2">Finalizar <ArrowRight /></button>
+                    </div>
+                 </div>
+               )}
+            </div>
+          } />
+
+          <Route path="/product" element={selectedProduct ? (
+            <div className="max-w-4xl mx-auto">
+               <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft /> Voltar</button>
+               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-8">
+                  <div className="h-[500px] bg-gray-100 relative">
+                     <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" alt="" />
+                     <button onClick={() => toggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
+                  </div>
+                  <div className="p-8">
+                     <span className="text-indigo-600 font-bold text-xs uppercase mb-2">{selectedProduct.category}</span>
+                     <h1 className="text-3xl font-black mb-2">{selectedProduct.title}</h1>
+                     <div className="flex items-center gap-2 text-gray-500 mb-4"><MapPin size={14} /> {selectedProduct.location}</div>
+                     <p className="text-3xl font-black mb-6">{formatMoney(selectedProduct.price)}</p>
+                     <div className="text-gray-600 dark:text-gray-300 mb-8 prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
+                     
+                     {user?.id === selectedProduct.sellerId ? (
+                        <div className="flex flex-col gap-2">
+                           <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold">Editar Anúncio</button>
+                           <button onClick={() => handleDeleteProduct(selectedProduct.id)} className="w-full bg-red-500 text-white py-4 rounded-xl font-bold">Apagar Anúncio</button>
+                        </div>
+                     ) : (
+                        <button onClick={() => { addToCart(selectedProduct); navigate('/cart'); }} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center gap-2"><ShoppingBag /> Comprar</button>
+                     )}
+                  </div>
+               </div>
+
+               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><MessageCircle /> Comentários</h3>
+                  <div className="space-y-6 mb-8">
+                     {reviews.length === 0 ? <p className="text-gray-500">Sem comentários.</p> : reviews.map(r => (
+                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
+                           <div className="flex justify-between mb-2"><span className="font-bold">{r.userName}</span><div className="flex text-yellow-400">{[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}</div></div>
+                           <p className="text-gray-600 dark:text-gray-300">{r.comment}</p>
+                        </div>
+                     ))}
+                  </div>
+                  
+                  {user ? (
+                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-4 rounded-xl">
+                        <div className="flex gap-2 mb-4">{[1,2,3,4,5].map(s => <button type="button" key={s} onClick={() => setNewRating(s)}><Star size={24} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} /></button>)}</div>
+                        <div className="flex gap-3"><input type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Comentar..." className="flex-1 p-3 rounded-xl border dark:bg-slate-800 dark:text-white" /><button type="submit" className="bg-indigo-600 text-white p-3 rounded-xl"><Send /></button></div>
+                     </form>
+                  ) : <div className="text-center p-6"><p>Faça login para comentar.</p></div>}
+               </div>
+            </div>
+          ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
+
+          <Route path="/favorites" element={
+             <div className="max-w-4xl mx-auto">
+                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft /> Voltar</button>
+                <h2 className="text-2xl font-bold mb-6">Meus Favoritos</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                   {products.filter(p => favorites.has(p.id)).map(p => (
+                      <ProductCard key={p.id} product={p} onAddToCart={addToCart} onClick={handleProductClick} isLiked={true} onToggleLike={(prod) => toggleFavorite(prod.id)} currentUserId={user?.id} />
+                   ))}
+                </div>
+                {favorites.size === 0 && <p className="text-center py-10 text-gray-500">Nenhum favorito.</p>}
+             </div>
+          } />
+
+           <Route path="/profile" element={
+            <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-10 bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8">
+                <img src={userProfile?.avatar_url || `https://ui-avatars.com/api/?name=${userProfile?.full_name || 'User'}&size=100`} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
+                <h2 className="text-2xl font-bold dark:text-white">{userProfile?.full_name || 'Usuário'}</h2>
+                <p className="text-gray-500 mb-4">{userProfile?.whatsapp || 'Sem contato'}</p>
+                <button onClick={() => setShowPhoneModal(true)} className="px-6 py-2 border rounded-full font-bold text-sm">Editar Contato</button>
+              </div>
+              <h3 className="text-xl font-bold mb-6">Meus Anúncios</h3>
+              {products.filter(p => p.sellerId === user?.id).length === 0 ? <p className="text-center text-gray-500">Sem anúncios.</p> : 
+                <div className="space-y-4">
+                  {products.filter(p => p.sellerId === user?.id).map(p => (
+                     <div key={p.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl flex items-center gap-4">
+                        <img src={p.imageUrl} className="w-16 h-16 rounded-lg object-cover" />
+                        <div className="flex-1">
+                          <h4 className="font-bold">{p.title}</h4>
+                          <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.status === 'sold' ? 'Vendido' : 'Disponível'}</span>
+                        </div>
+                        <div className="flex gap-2">
+                           {p.status !== 'sold' && <button onClick={() => handleMarkAsSold(p.id)} className="p-2 text-green-600"><CheckCircle size={20}/></button>}
+                           <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-500"><Trash2 size={20}/></button>
+                        </div>
+                     </div>
+                  ))}
+                </div>
+              }
+            </div>
+          } />
+
+          {/* Rota do Admin protegida */}
+          <Route path="/admin" element={
+            userProfile?.role === 'admin' ? <AdminPanel /> : <div className="text-center py-20 text-red-500 font-bold"><AlertTriangle className="mx-auto mb-2" size={40}/>Acesso Restrito</div>
+          } />
+
           <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </main>
 
-      <Footer />
-      {/* BOTÃO FLUTUANTE COM PROTEÇÃO DE LOGIN */}
-      <button onClick={handleFloatingSellClick} className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-2xl z-40 flex items-center gap-2 hover:scale-105 transition-transform"><PlusCircle size={20} /> Vender</button>
+      <Footer onOpenAbout={() => setShowAboutModal(true)} />
       
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); showToast('Logado!', 'success'); }} />}
-      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} />}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+      
+      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
+      
+      {showAboutModal && <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />}
 
-      {showPaymentModal && (<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-slide-up">{!paymentSuccess ? (<><div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold">Pagamento</h3><button onClick={() => setShowPaymentModal(false)}><XCircle className="text-gray-400" /></button></div><button onClick={handleWhatsAppCheckout} className="w-full py-5 bg-[#25D366] text-white rounded-xl font-bold flex justify-center items-center gap-3 text-lg hover:brightness-105 shadow-xl shadow-green-500/20"><MessageCircle size={28} /> Negociar via WhatsApp</button><p className="text-center text-gray-400 text-sm mt-4">O vendedor receberá sua mensagem imediatamente.</p></>) : (<div className="text-center py-10"><CheckCircle size={60} className="text-green-500 mx-auto mb-4" /><h3 className="text-2xl font-bold">Sucesso!</h3></div>)}</div></div>)}
+      {showPaymentModal && (
+         <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm">
+               <h3 className="text-xl font-bold mb-4">Finalizar no WhatsApp</h3>
+               <button onClick={handleWhatsAppCheckout} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><MessageCircle /> Iniciar Conversa</button>
+               <button onClick={() => setShowPaymentModal(false)} className="w-full mt-4 text-gray-500 font-bold">Cancelar</button>
+            </div>
+         </div>
+      )}
     </div>
   );
 }
 
-const App: React.FC = () => { return <Router><AppContent /></Router>; };
-
+const App: React.FC = () => <Router><AppContent /></Router>;
 export default App;

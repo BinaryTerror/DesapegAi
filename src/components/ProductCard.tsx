@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, ShoppingBag, Heart, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Heart, User, MapPin, Trash2, CheckCircle, Edit } from 'lucide-react';
 import { Product } from '../types';
 import DOMPurify from 'dompurify'; // Importante para segurança
 
@@ -9,11 +9,24 @@ interface ProductCardProps {
   onClick: (product: Product) => void;
   isLiked?: boolean;
   onToggleLike?: (product: Product) => void;
-  currentUserId?: string;
+  currentUserId?: string; // ID do usuário logado
   onMarkAsSold?: (productId: string) => void;
+  onDelete?: (productId: string) => void;
+  onEdit?: (product: Product) => void; // Para editar
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick, isLiked, onToggleLike }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onAddToCart, 
+  onClick, 
+  isLiked, 
+  onToggleLike, 
+  currentUserId, 
+  onMarkAsSold, 
+  onDelete, 
+  onEdit 
+}) => {
+  
   const discount = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
     : 0;
@@ -24,14 +37,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
 
   // Sanitiza a descrição para evitar injeção de scripts (XSS)
   const sanitizedDescription = DOMPurify.sanitize(product.description || '');
+  const formattedDate = new Date(product.createdAt).toLocaleDateString('pt-MZ');
 
   return (
     <div 
-      onClick={() => onClick(product)}
-      className="group relative bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ring-1 ring-gray-100 dark:ring-slate-700 hover:ring-indigo-100 dark:hover:ring-indigo-900/30 flex flex-col h-full"
+      className={`group relative bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ring-1 ring-gray-100 dark:ring-slate-700 hover:ring-indigo-100 dark:hover:ring-indigo-900/30 flex flex-col h-full ${product.status === 'sold' ? 'opacity-70 grayscale' : ''}`}
     >
       {/* Image Container */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-slate-700">
+      <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-slate-700" onClick={() => onClick(product)}>
         <img 
           src={product.imageUrl} 
           alt={product.title} 
@@ -55,24 +68,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
             )}
         </div>
 
+        {/* Sold Badge */}
+        {product.status === 'sold' && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
+            <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">VENDIDO</span>
+          </div>
+        )}
+
         {/* Like Button */}
-        <button 
-          className={`absolute top-2 right-2 md:top-3 md:right-3 p-2 rounded-full transition-all shadow-sm z-20 ${
-            isLiked 
-              ? 'bg-white text-red-500 scale-110' 
-              : 'bg-white/60 dark:bg-slate-900/60 text-gray-600 dark:text-gray-300 backdrop-blur-md hover:bg-white hover:text-red-500'
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleLike && onToggleLike(product);
-          }}
-        >
-          <Heart size={16} className={`transition-colors ${isLiked ? 'fill-red-500' : ''}`} />
-        </button>
+        {onToggleLike && (
+          <button 
+            className={`absolute top-2 right-2 md:top-3 md:right-3 p-2 rounded-full transition-all shadow-sm z-20 ${
+              isLiked 
+                ? 'bg-white text-red-500 scale-110' 
+                : 'bg-white/60 dark:bg-slate-900/60 text-gray-600 dark:text-gray-300 backdrop-blur-md hover:bg-white hover:text-red-500'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleLike(product);
+            }}
+          >
+            <Heart size={16} className={`transition-colors ${isLiked ? 'fill-red-500' : ''}`} />
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      <div className="p-3 md:p-4 flex flex-col flex-1">
+      <div className="p-3 md:p-4 flex flex-col flex-1" onClick={() => onClick(product)}>
         <div className="mb-auto">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors mb-1">
             {product.title}
@@ -85,28 +107,65 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onClick
         <div className="mt-2 mb-2">
           <div className="flex items-baseline gap-2">
             <span className="text-base md:text-lg font-black text-gray-900 dark:text-white">{formatMoney(product.price)}</span>
-            {product.originalPrice && (
+            {product.originalPrice && product.status !== 'sold' && (
               <span className="text-[10px] text-gray-400 line-through decoration-red-500/50 hidden md:inline">{formatMoney(product.originalPrice)}</span>
             )}
           </div>
+          <p className="text-[10px] text-gray-400 mt-1">Publicado em: {formattedDate}</p>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-slate-700/50 mt-1">
            <div className="flex items-center gap-1.5">
              <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-200 dark:bg-slate-600 overflow-hidden ring-1 ring-white dark:ring-slate-700">
-                <img src={`https://ui-avatars.com/api/?name=${product.sellerName}&background=random`} alt="" className="w-full h-full object-cover" />
+                {/* Placeholder para Avatar */}
+                <img src={`https://ui-avatars.com/api/?name=${product.sellerName || 'User'}&background=random`} alt="" className="w-full h-full object-cover" />
              </div>
-             <span className="text-[10px] md:text-[11px] text-gray-500 dark:text-slate-400 font-medium truncate max-w-[60px] md:max-w-[80px]">{product.sellerName}</span>
+             <span className="text-[10px] md:text-[11px] text-gray-500 dark:text-slate-400 font-medium truncate max-w-[60px] md:max-w-[80px]">{product.sellerName || 'Vendedor'}</span>
            </div>
-           <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(product);
-            }}
-            className="p-1.5 md:p-2 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-md hover:scale-110 transition-transform active:scale-95"
-           >
-            <ShoppingCart size={14} className="md:w-4 md:h-4" />
-           </button>
+
+           {/* Botões de Ação (Diferentes para Dono vs Outros) */}
+           {currentUserId === product.sellerId ? (
+             <div className="flex gap-1">
+                {product.status !== 'sold' && onMarkAsSold && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onMarkAsSold(product.id); }}
+                    className="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-lg text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50"
+                    title="Marcar como Vendido"
+                  >
+                    <CheckCircle size={14} />
+                  </button>
+                )}
+                {onEdit && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                    className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                    title="Editar Anúncio"
+                  >
+                    <Edit size={14} />
+                  </button>
+                )}
+                {onDelete && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50"
+                    title="Apagar Anúncio"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+             </div>
+           ) : (
+             <button
+               onClick={(e) => {
+                   e.stopPropagation();
+                   onAddToCart(product);
+               }}
+               className="p-1.5 md:p-2 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-md hover:scale-110 transition-transform active:scale-95 disabled:opacity-50 disabled:scale-100"
+               disabled={product.status === 'sold'}
+              >
+               <ShoppingBag size={14} className="md:w-4 md:h-4" />
+             </button>
+           )}
         </div>
       </div>
     </div>
