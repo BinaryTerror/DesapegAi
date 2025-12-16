@@ -14,7 +14,7 @@ import {
   ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
   Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
   Package, MapPin, MessageCircle, Star, Send, Sparkles, ChevronLeft, AlertTriangle, 
-  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard
+  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, Image as ImageIcon
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -28,29 +28,14 @@ const formatMoney = (amount: number) => {
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
   <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-      
       <div className="flex items-center gap-1">
         <span>Powered by</span>
-        <a 
-          href="http://piripiri.chat" 
-          target="_blank" 
-          rel="noreferrer"
-          className="font-bold text-indigo-600 hover:underline"
-        >
-          Otseven
-        </a>
+        <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="font-bold text-indigo-600 hover:underline">Otseven</a>
       </div>
-
       <div className="flex gap-6">
         <span>© 2025 DesapegAi</span>
-        <button 
-          onClick={onOpenAbout} 
-          className="hover:text-indigo-600 transition-colors font-medium hover:underline"
-        >
-          Sobre nós
-        </button>
+        <button onClick={onOpenAbout} className="hover:text-indigo-600 transition-colors font-medium hover:underline">Sobre nós</button>
       </div>
-
     </div>
   </footer>
 );
@@ -60,15 +45,8 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-        
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10">
-          <XCircle size={24} className="text-gray-400" />
-        </button>
-        
-        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">
-          Quem Somos
-        </h2>
-        
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><XCircle size={24} className="text-gray-400" /></button>
+        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">Quem Somos</h2>
         <div className="space-y-6">
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
@@ -76,20 +54,15 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
-            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
-              <Linkedin size={18} /> Conectar no LinkedIn
-            </a>
+            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"><Linkedin size={18} /> Conectar no LinkedIn</a>
           </div>
-
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
               <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
-            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
-              <Globe size={18} /> Ver Portfolio
-            </a>
+            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver Portfolio</a>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
@@ -98,7 +71,6 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-// 3. Filtro de Categorias
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -153,6 +125,7 @@ function AppContent() {
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  const [userProductCount, setUserProductCount] = useState(0);
 
   const [products, setProducts] = useState<Product[]>([]);
   
@@ -160,6 +133,9 @@ function AppContent() {
     const saved = localStorage.getItem('desapegai_selected_product');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // ✅ NOVO ESTADO: Imagem ativa na galeria
+  const [activeImage, setActiveImage] = useState<string>('');
 
   const [cart, setCart] = useState<CartItem[]>(() => JSON.parse(localStorage.getItem('desapegai_cart') || '[]'));
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -177,10 +153,18 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [showPlansModal, setShowPlansModal] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   // --- EFEITOS ---
+  
+  // Atualiza a imagem principal quando o produto muda
+  useEffect(() => {
+    if (selectedProduct) {
+      setActiveImage(selectedProduct.imageUrl);
+    }
+  }, [selectedProduct]);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
     if (savedTheme === 'dark') setIsDarkMode(true);
@@ -209,6 +193,7 @@ function AppContent() {
         else { 
           setUser(null); 
           setUserProfile(null);
+          setUserProductCount(0);
         }
       });
 
@@ -225,6 +210,8 @@ function AppContent() {
       setUserProfile(data);
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
+      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id);
+      setUserProductCount(count || 0);
     }
   };
 
@@ -233,7 +220,7 @@ function AppContent() {
     try {
       const { data, error } = await supabase.from('products')
         .select(`
-          id, title, description, price, originalPrice:original_price, imageUrl:image_url, category, subcategory, condition, 
+          id, title, description, price, originalPrice:original_price, imageUrl:image_url, images, category, subcategory, condition, 
           location, sellerName:seller_name, sellerPhone:seller_phone, sellerRating:seller_rating, 
           likes, status, sellerId:user_id, createdAt:created_at
         `)
@@ -387,6 +374,7 @@ function AppContent() {
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if(!error) {
         setProducts(prev => prev.filter(p => p.id !== productId));
+        handleUserLogin(user); 
         showToast('Apagado.', 'success');
     }
   };
@@ -485,6 +473,7 @@ function AppContent() {
         onSearch={setSearch}
         user={user}
         userProfile={userProfile}
+        userProductCount={userProductCount}
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
       />
@@ -574,9 +563,26 @@ function AppContent() {
                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft /> Voltar</button>
                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-8">
                   <div className="h-[500px] bg-gray-100 relative">
-                     <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" alt="" />
+                     {/* ✅ GALERIA DE FOTOS */}
+                     <img src={activeImage || selectedProduct.imageUrl} className="w-full h-full object-cover" alt="" />
                      <button onClick={() => toggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
+                     
+                     {/* Miniaturas (só se tiver mais de 1 foto) */}
+                     {selectedProduct.images && selectedProduct.images.length > 1 && (
+                       <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto p-1">
+                          {selectedProduct.images.map((img, idx) => (
+                             <button 
+                               key={idx} 
+                               onClick={() => setActiveImage(img)}
+                               className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${activeImage === img ? 'border-indigo-500 scale-105' : 'border-white opacity-80'}`}
+                             >
+                                <img src={img} className="w-full h-full object-cover" />
+                             </button>
+                          ))}
+                       </div>
+                     )}
                   </div>
+                  
                   <div className="p-8 flex flex-col">
                      <span className="text-indigo-600 font-bold text-xs uppercase mb-2">{selectedProduct.category}</span>
                      <h1 className="text-3xl font-black mb-2">{selectedProduct.title}</h1>
@@ -685,7 +691,6 @@ function AppContent() {
                 <p className="text-gray-500 mb-4">{userProfile?.whatsapp || 'Sem contato'}</p>
                 <button onClick={() => setShowPhoneModal(true)} className="px-6 py-2 border rounded-full font-bold text-sm">Editar Contato</button>
                 
-                {/* ✅ BOTÃO NOVO: ADICIONAR CRÉDITOS */}
                 <button onClick={() => setShowPlansModal(true)} className="mt-4 px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-bold text-sm flex items-center gap-2 mx-auto shadow-lg hover:scale-105 transition-transform"><CreditCard size={16}/> Planos & Créditos</button>
               </div>
               
