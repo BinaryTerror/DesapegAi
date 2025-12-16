@@ -87,11 +87,11 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-// 3. Filtro de Categorias (CORRIGIDO)
+// 3. Filtro de Categorias
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="relative w-full mb-6 z-30">
+    <div className="relative w-full mb-8 z-40">
       <div className="flex items-center justify-between">
         <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${isOpen || activeCat ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'}`}>
           <Filter size={18} />
@@ -133,6 +133,7 @@ function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
+  const [newRating, setNewRating] = useState(5);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -144,7 +145,6 @@ function AppContent() {
 
   const [products, setProducts] = useState<Product[]>([]);
   
-  // ✅ CORREÇÃO BUG 3: Inicialização Lazy para ler o localStorage imediatamente
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
     const saved = localStorage.getItem('desapegai_selected_product');
     return saved ? JSON.parse(saved) : null;
@@ -164,6 +164,7 @@ function AppContent() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'info'} | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
   
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -275,6 +276,31 @@ function AppContent() {
     showToast('Favoritos atualizados', 'info');
   };
 
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedProduct) return showToast('Erro', 'error');
+    try {
+        const { error } = await supabase.from('reviews').insert([{
+            product_id: selectedProduct.id,
+            user_id: user.id,
+            user_name: userProfile?.full_name || 'Usuário',
+            rating: newRating,
+            comment: ""
+        }]);
+        if (error) throw error;
+        const newReview: Review = {
+            id: Date.now().toString(),
+            userName: userProfile?.full_name || 'Eu',
+            comment: "",
+            rating: newRating,
+            date: new Date().toLocaleDateString('pt-MZ')
+        };
+        setReviews([newReview, ...reviews]);
+        setNewRating(5);
+        showToast('Avaliação enviada!', 'success');
+    } catch (err) { console.error(err); showToast('Erro ao avaliar', 'error'); }
+  };
+
   const handleNavigate = (newView: ViewState | 'ADMIN') => {
     if (newView === 'SELL') { 
       if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
@@ -362,6 +388,18 @@ function AppContent() {
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
+    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
+    if (data) {
+        setReviews(data.map((r: any) => ({
+            id: r.id,
+            userName: r.user_name,
+            comment: r.comment,
+            rating: r.rating,
+            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
+        })));
+    } else {
+        setReviews([]);
+    }
     navigate('/product');
   };
 
@@ -414,6 +452,12 @@ function AppContent() {
     const matchesSearch = search ? p.title.toLowerCase().includes(search.toLowerCase()) : true;
     return matchesCategory && matchesSearch;
   });
+  
+  // ✅ BOTÃO VENDER FLUTUANTE PARA MOBILE
+  const handleFloatingSell = () => {
+    if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
+    else { setEditingProduct(null); setShowSellForm(true); }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
@@ -442,15 +486,22 @@ function AppContent() {
         </div>
       )}
 
-      {/* ✅ CORREÇÃO 2: Aumentei o padding-top para evitar sobreposição */}
-      <main className="pt-28 px-4 max-w-7xl mx-auto w-full min-h-screen">
+      {/* ✅ BOTÃO VENDER FLUTUANTE (Visível apenas em Mobile) */}
+      <button 
+        onClick={handleFloatingSell}
+        className="lg:hidden fixed bottom-6 right-6 z-50 bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
+      >
+        <PlusCircle size={28} />
+      </button>
+
+      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
             <>
-              {/* ✅ CORREÇÃO 2: Barra de filtro dentro do fluxo normal */}
-              <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
+              {/* Hero Removed */}
               
-              <div ref={productsSectionRef}>
+              <div ref={productsSectionRef} className="pt-4">
+                <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1">
                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2></div>
                    {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
@@ -534,8 +585,44 @@ function AppContent() {
                      </div>
                   </div>
                </div>
-               
-               {/* ✅ CORREÇÃO 1: DIV DE AVALIAÇÕES REMOVIDA (NÃO EXISTE MAIS) */}
+
+               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
+                  <div className="space-y-6 mb-8">
+                     {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
+                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
+                           <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-gray-900 dark:text-white">{r.userName}</span>
+                              <div className="flex text-yellow-400">
+                                {[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}
+                              </div>
+                           </div>
+                           <p className="text-xs text-gray-400">{r.date}</p>
+                        </div>
+                     ))}
+                  </div>
+                  
+                  {user ? (
+                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
+                        <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
+                        <div className="flex justify-center gap-2 mb-6">
+                           {[1,2,3,4,5].map(s => (
+                             <button type="button" key={s} onClick={() => setNewRating(s)} className="transform hover:scale-110 transition-transform">
+                               <Star size={32} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+                             </button>
+                           ))}
+                        </div>
+                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
+                           Enviar Avaliação
+                        </button>
+                     </form>
+                  ) : (
+                    <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
+                       <p className="mb-3">Faça login para avaliar.</p>
+                       <button onClick={() => setShowAuthModal(true)} className="text-indigo-600 font-bold">Entrar</button>
+                    </div>
+                  )}
+               </div>
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
