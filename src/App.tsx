@@ -549,10 +549,10 @@ function AppContent() {
         </div>
       )}
 
-      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
+      <main className="pt-16 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
-            <>
+            <>{/*
               {!search && (
                 <div className="relative rounded-3xl overflow-hidden h-[350px] md:h-[450px] mb-8 md:mb-12 shadow-2xl group">
                   {HERO_SLIDES.map((slide, index) => (
@@ -572,6 +572,7 @@ function AppContent() {
                   ))}
                 </div>
               )}
+              */}
               
               <div ref={productsSectionRef} className="pt-4">
                 <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
