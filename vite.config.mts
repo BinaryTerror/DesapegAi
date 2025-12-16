@@ -42,6 +42,15 @@ export default defineConfig(({ mode, command }) => {
     },
     build: {
       outDir: 'dist',
+  target: 'es2020',
+
+  rollupOptions: {
+    output: {
+      entryFileNames: `assets/[name]-${Date.now()}.js`,
+      chunkFileNames: `assets/[name]-${Date.now()}.js`,
+      assetFileNames: `assets/[name]-${Date.now()}.[ext]`,
+    },
+      outDir: 'dist',
       sourcemap: mode !== 'production',
       minify: 'esbuild',
       cssMinify: true,
