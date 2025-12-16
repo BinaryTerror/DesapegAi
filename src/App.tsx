@@ -8,7 +8,6 @@ import { AdminPanel } from './components/AdminPanel';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, Category, ViewState, Review } from './types';
 
-// Imports de ícones
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
   Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
@@ -16,8 +15,6 @@ import {
   Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy 
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
-
-// --- CONSTANTES ---
 
 const HERO_PHRASES = [
   "Roupas com história? Compra, vende, repete!",
@@ -37,9 +34,6 @@ const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
 };
 
-// --- COMPONENTES AUXILIARES ---
-
-// 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
   <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
@@ -57,7 +51,7 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
       </div>
 
       <div className="flex gap-6">
-        <span>© 2025 DesapegAí</span>
+        <span>© 2025 DesapegAi</span>
         <button 
           onClick={onOpenAbout} 
           className="hover:text-indigo-600 transition-colors font-medium hover:underline"
@@ -70,7 +64,6 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
   </footer>
 );
 
-// 2. About Modal
 const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   if (!isOpen) return null;
   return (
@@ -85,60 +78,27 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           Quem Somos
         </h2>
         
-     <div className="space-y-6 text-left">
+        <div className="space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative w-20 h-20 mx-auto mb-3">
+              <img src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" alt="Lino Alfredo" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
+            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
+              <Linkedin size={18} /> Conectar no LinkedIn
+            </a>
+          </div>
 
-  {/* OTSEVEN */}
-  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-    <div className="flex items-center gap-4 mb-4">
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
-        O7
-      </div>
-      <div>
-        <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-          Otseven
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">
-          Startup de Tecnologia
-        </p>
-      </div>
-    </div>
-
-    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-      A <strong>Otseven</strong> é uma startup dedicada ao desenvolvimento de aplicações digitais
-      inovadoras, focadas em resolver problemas reais através da tecnologia.
-      Criamos produtos com impacto social, design moderno e foco no futuro digital africano.
-    </p>
-  </div>
-
-  {/* PROJETO */}
-  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-    <h4 className="text-sm font-extrabold text-gray-900 dark:text-white mb-2 uppercase tracking-wider">
-      Sobre este projeto
-    </h4>
-
-    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-      Este projeto foi desenvolvido no âmbito da Otseven, com o objetivo de criar
-      uma solução prática, acessível e centrada no utilizador.
-      Todo o desenvolvimento, arquitetura e visão do produto seguem os princípios
-      de inovação, simplicidade e escalabilidade.
-    </p>
-  </div>
-
-  {/* COLABORADORES */}
-  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-    <h4 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">
-      Colaboração
-    </h4>
-
-    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-      O desenvolvimento direto deste projeto contou com a colaboração de membros
-      da Otseven, com destaque para <strong>Lino Alfredo</strong> e <strong>Alex Nhabinde</strong>,
-      que contribuíram ativamente na implementação técnica e evolução da plataforma.
-    </p>
-  </div>
-
-</div>
-           
+          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative w-20 h-20 mx-auto mb-3">
+              <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
+            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
+              <Globe size={18} /> Ver Portfolio
+            </a>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
@@ -147,7 +107,6 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-// 3. Filtro de Categorias
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -211,21 +170,17 @@ const AuthCallback: React.FC = () => {
   return <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
 };
 
-// --- APP CONTENT ---
-
 function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
-  // States
-  const [newRating, setNewRating] = useState(5); // Removido newComment
+  const [newRating, setNewRating] = useState(5);  
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [tempPhone, setTempPhone] = useState('');
 
-  // Data
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>(() => JSON.parse(localStorage.getItem('desapegai_cart') || '[]'));
   const [favorites, setFavorites] = useState<Set<string>>(() => {
@@ -235,7 +190,6 @@ function AppContent() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
 
-  // UI
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [search, setSearch] = useState('');
@@ -245,19 +199,16 @@ function AppContent() {
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'info'} | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   
-  // Payment
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  // Hero Animation
   const [displayedText, setDisplayedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(100);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // --- EFEITOS ---
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
     if (savedTheme === 'dark') setIsDarkMode(true);
@@ -313,8 +264,6 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [displayedText, isDeleting, loopNum, typingSpeed]);
 
-  // --- HANDLERS ---
-
   const handleUserLogin = async (authUser: any) => {
     setUser(authUser);
     const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
@@ -369,7 +318,6 @@ function AppContent() {
     showToast('Favoritos atualizados', 'info');
   };
 
-  // ✅ MODIFICADO: Apenas Estrelas (Sem Texto)
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedProduct) return showToast('Erro', 'error');
@@ -379,7 +327,7 @@ function AppContent() {
             user_id: user.id,
             user_name: userProfile?.full_name || 'Usuário',
             rating: newRating,
-            comment: "" // Envia vazio pois o usuário não digita mais
+            comment: ""
         }]);
         if (error) throw error;
         const newReview: Review = {
@@ -499,7 +447,7 @@ function AppContent() {
   const handleWhatsAppCheckout = () => {
     const item = cart[0];
     if (!item) return;
-    const sellerPhone = item.sellerPhone || '8xxxxxxxx';
+    const sellerPhone = item.sellerPhone || '841234567';
     const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
     const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAi. Ainda está disponível?`;
     window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -511,7 +459,7 @@ function AppContent() {
   const handleCopyPhone = () => {
     const item = cart[0];
     if (!item) return;
-    const phone = item.sellerPhone || '8xxxxxxxx';
+    const phone = item.sellerPhone || '841234567';
     navigator.clipboard.writeText(phone);
     showToast('Número copiado!', 'success');
   };
@@ -543,16 +491,16 @@ function AppContent() {
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative">
              <button onClick={() => setShowPhoneModal(false)} className="absolute top-4 right-4"><XCircle /></button>
              <h2 className="text-xl font-bold mb-4">Atualizar WhatsApp</h2>
-             <input type="tel" value={tempPhone} onChange={e => setTempPhone(e.target.value)} placeholder="8xxxxxxxx" className="w-full p-3 border rounded-xl mb-4 dark:bg-slate-900" />
+             <input type="tel" value={tempPhone} onChange={e => setTempPhone(e.target.value)} placeholder="841234567" className="w-full p-3 border rounded-xl mb-4 dark:bg-slate-900" />
              <button onClick={handleSavePhone} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Salvar</button>
           </div>
         </div>
       )}
 
-      <main className="pt-16 px-4 max-w-7xl mx-auto w-full min-h-screen">
+      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
-            <>{/*
+            <>
               {!search && (
                 <div className="relative rounded-3xl overflow-hidden h-[350px] md:h-[450px] mb-8 md:mb-12 shadow-2xl group">
                   {HERO_SLIDES.map((slide, index) => (
@@ -572,7 +520,6 @@ function AppContent() {
                   ))}
                 </div>
               )}
-              */}
               
               <div ref={productsSectionRef} className="pt-4">
                 <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
@@ -654,7 +601,6 @@ function AppContent() {
                </div>
 
                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
-                  {/* Título alterado para Avaliações */}
                   <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
                   <div className="space-y-6 mb-8">
                      {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
@@ -666,12 +612,10 @@ function AppContent() {
                               </div>
                            </div>
                            <p className="text-xs text-gray-400">{r.date}</p>
-                           {/* TEXTO DO COMENTÁRIO REMOVIDO DAQUI */}
                         </div>
                      ))}
                   </div>
                   
-                  {/* Formulário APENAS com Estrelas */}
                   {user ? (
                      <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
                         <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
@@ -682,7 +626,6 @@ function AppContent() {
                              </button>
                            ))}
                         </div>
-                        {/* INPUT DE TEXTO REMOVIDO */}
                         <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
                            Enviar Avaliação
                         </button>
