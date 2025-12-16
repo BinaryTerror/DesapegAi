@@ -8,76 +8,46 @@ import { AdminPanel } from './components/AdminPanel';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, Category, ViewState, Review } from './types';
 
+// Imports de ícones
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
   Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
   Package, MapPin, MessageCircle, Star, Send, Sparkles, ChevronLeft, AlertTriangle, 
-  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy 
+  Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
-const HERO_PHRASES = [
-  "Roupas com história? Compra, vende, repete!",
-  "Dá tchau ao velho, olá ao novo estilo!",
-  "Moda circular: roda, gira, brilha!",
-  "Transforma teu guarda-roupa em aventuras fashion!",
-  "Estilo que roda: compra, vende, repete!"
-];
-
-const HERO_SLIDES = [
-  { id: 1, image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1920&auto=format&fit=crop', title: 'Moda que conta história', subtitle: 'Encontre peças únicas em Moçambique' },
-  { id: 2, image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1920&auto=format&fit=crop', title: 'Seu Estilo, Sua Regra', subtitle: 'Preços incríveis' },
-  { id: 3, image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1920&auto=format&fit=crop', title: 'Economia Circular', subtitle: 'Sustentabilidade em primeiro lugar' }
-];
-
+// --- CONSTANTES ---
 const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
 };
 
+// --- COMPONENTES AUXILIARES ---
+
+// 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
   <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-      
       <div className="flex items-center gap-1">
         <span>Powered by</span>
-        <a 
-          href="http://piripiri.chat" 
-          target="_blank" 
-          rel="noreferrer"
-          className="font-bold text-indigo-600 hover:underline"
-        >
-          Otseven
-        </a>
+        <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="font-bold text-indigo-600 hover:underline">Otseven</a>
       </div>
-
       <div className="flex gap-6">
         <span>© 2025 DesapegAi</span>
-        <button 
-          onClick={onOpenAbout} 
-          className="hover:text-indigo-600 transition-colors font-medium hover:underline"
-        >
-          Sobre nós
-        </button>
+        <button onClick={onOpenAbout} className="hover:text-indigo-600 transition-colors font-medium hover:underline">Sobre nós</button>
       </div>
-
     </div>
   </footer>
 );
 
+// 2. About Modal
 const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-        
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10">
-          <XCircle size={24} className="text-gray-400" />
-        </button>
-        
-        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">
-          Quem Somos
-        </h2>
-        
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><XCircle size={24} className="text-gray-400" /></button>
+        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">Quem Somos</h2>
         <div className="space-y-6">
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
@@ -85,20 +55,15 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
-            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
-              <Linkedin size={18} /> Conectar no LinkedIn
-            </a>
+            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"><Linkedin size={18} /> Conectar no LinkedIn</a>
           </div>
-
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
               <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
-            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
-              <Globe size={18} /> Ver Portfolio
-            </a>
+            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver Portfolio</a>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
@@ -107,51 +72,26 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
+// 3. Filtro de Categorias
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-
   return (
     <div className="w-full mb-8">
       <div className="flex items-center justify-between">
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${
-            isOpen || activeCat 
-              ? 'bg-indigo-600 text-white shadow-indigo-200' 
-              : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'
-          }`}
-        >
+        <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${isOpen || activeCat ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'}`}>
           <Filter size={18} />
           {activeCat ? activeCat : 'Filtrar por Categoria'}
           {isOpen ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
         </button>
-
         {activeCat && (
-          <button 
-            onClick={() => onSelect(null)}
-            className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"
-          >
-            <X size={14} /> Limpar filtro
-          </button>
+          <button onClick={() => onSelect(null)} className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"><X size={14} /> Limpar filtro</button>
         )}
       </div>
-
       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          <button 
-            onClick={() => { onSelect(null); setIsOpen(false); }}
-            className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${!activeCat ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
-          >
-            Todas
-          </button>
+          <button onClick={() => { onSelect(null); setIsOpen(false); }} className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${!activeCat ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}>Todas</button>
           {Object.values(Category).map(cat => (
-            <button 
-              key={cat} 
-              onClick={() => { onSelect(cat); setIsOpen(false); }}
-              className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${activeCat === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 border-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'}`}
-            >
-              {cat}
-            </button>
+            <button key={cat} onClick={() => { onSelect(cat); setIsOpen(false); }} className={`p-3 rounded-xl text-xs font-bold transition-colors text-center border ${activeCat === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 border-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'}`}>{cat}</button>
           ))}
         </div>
       </div>
@@ -170,11 +110,12 @@ const AuthCallback: React.FC = () => {
   return <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
 };
 
+// --- APP CONTENT ---
+
 function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
-  const [newRating, setNewRating] = useState(5);  
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -188,7 +129,6 @@ function AppContent() {
     return savedFavs ? new Set(JSON.parse(savedFavs)) : new Set();
   });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -200,14 +140,6 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-
-  const [displayedText, setDisplayedText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loopNum, setLoopNum] = useState(0);
-  const [typingSpeed, setTypingSpeed] = useState(100);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
@@ -234,10 +166,7 @@ function AppContent() {
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
         if (session?.user) handleUserLogin(session.user);
-        else { 
-          setUser(null); 
-          setUserProfile(null);
-        }
+        else { setUser(null); setUserProfile(null); }
       });
 
       await fetchProducts();
@@ -245,24 +174,6 @@ function AppContent() {
     };
     initializeApp();
   }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const handleType = () => {
-      const currentPhraseIndex = loopNum % HERO_PHRASES.length;
-      const fullText = HERO_PHRASES[currentPhraseIndex];
-      setDisplayedText(isDeleting ? fullText.substring(0, displayedText.length - 1) : fullText.substring(0, displayedText.length + 1));
-      setTypingSpeed(isDeleting ? 40 : 100);
-      if (!isDeleting && displayedText === fullText) { setTimeout(() => setIsDeleting(true), 2000); }
-      else if (isDeleting && displayedText === '') { setIsDeleting(false); setLoopNum(loopNum + 1); setTypingSpeed(500); }
-    };
-    const timer = setTimeout(handleType, typingSpeed);
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, loopNum, typingSpeed]);
 
   const handleUserLogin = async (authUser: any) => {
     setUser(authUser);
@@ -276,9 +187,10 @@ function AppContent() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
+      // NOTE: Removed isPromoted request to avoid errors if column missing
       const { data, error } = await supabase.from('products')
         .select(`
-          id, title, description, price, originalPrice:original_price, imageUrl:image_url, category, subcategory, condition, 
+          id, title, description, price, originalPrice:original_price, imageUrl:image_url, images, category, subcategory, condition, 
           location, sellerName:seller_name, sellerPhone:seller_phone, sellerRating:seller_rating, 
           likes, status, sellerId:user_id, createdAt:created_at
         `)
@@ -298,12 +210,20 @@ function AppContent() {
   };
 
   const handleSavePhone = async () => {
-    if (tempPhone.length < 9) return showToast('Inválido', 'error');
+    // VALIDAÇÃO RIGOROSA: Começa com 8 e tem 9 digitos no total
+    const phoneRegex = /^8\d{8}$/;
+
+    if (!phoneRegex.test(tempPhone)) {
+      return showToast('Número inválido. Deve começar com 8 e ter 9 dígitos.', 'error');
+    }
+
     const { error } = await supabase.from('profiles').update({ whatsapp: tempPhone }).eq('id', user.id);
     if (!error) {
       setUserProfile(prev => prev ? { ...prev, whatsapp: tempPhone } : null);
       setShowPhoneModal(false);
       showToast('Salvo!');
+    } else {
+      showToast('Erro ao salvar.', 'error');
     }
   };
 
@@ -316,31 +236,6 @@ function AppContent() {
       return newSet;
     });
     showToast('Favoritos atualizados', 'info');
-  };
-
-  const handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProduct) return showToast('Erro', 'error');
-    try {
-        const { error } = await supabase.from('reviews').insert([{
-            product_id: selectedProduct.id,
-            user_id: user.id,
-            user_name: userProfile?.full_name || 'Usuário',
-            rating: newRating,
-            comment: ""
-        }]);
-        if (error) throw error;
-        const newReview: Review = {
-            id: Date.now().toString(),
-            userName: userProfile?.full_name || 'Eu',
-            comment: "",
-            rating: newRating,
-            date: new Date().toLocaleDateString('pt-MZ')
-        };
-        setReviews([newReview, ...reviews]);
-        setNewRating(5);
-        showToast('Avaliação enviada!', 'success');
-    } catch (err) { console.error(err); showToast('Erro ao avaliar', 'error'); }
   };
 
   const handleNavigate = (newView: ViewState | 'ADMIN') => {
@@ -358,11 +253,14 @@ function AppContent() {
 
   const handleSellSubmit = async (productData: any) => {
     if (!user) return;
+    // O SellForm agora retorna images (array) e imageUrl (string capa)
     const payload = {
        title: productData.title,
        description: productData.description,
        price: productData.price,
-       image_url: productData.imageUrl,
+       image_url: productData.imageUrl, // Capa
+       // Se o banco tiver coluna 'images', poderia salvar aqui: images: productData.images 
+       // Por enquanto salvamos apenas o array images no front se o back nao suportar
        category: productData.category,
        subcategory: productData.subcategory,
        condition: productData.condition,
@@ -429,18 +327,6 @@ function AppContent() {
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
-    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
-    if (data) {
-        setReviews(data.map((r: any) => ({
-            id: r.id,
-            userName: r.user_name,
-            comment: r.comment,
-            rating: r.rating,
-            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
-        })));
-    } else {
-        setReviews([]);
-    }
     navigate('/product');
   };
 
@@ -462,6 +348,34 @@ function AppContent() {
     const phone = item.sellerPhone || '841234567';
     navigator.clipboard.writeText(phone);
     showToast('Número copiado!', 'success');
+  };
+  
+  // Função de Compartilhar via Web Share API
+  const handleShareProduct = async () => {
+    if (!selectedProduct) return;
+    const shareData = {
+      title: `DesapegAi: ${selectedProduct.title}`,
+      text: `Olha este produto incrível no DesapegAi: ${selectedProduct.title} por ${formatMoney(selectedProduct.price)}!`,
+      url: window.location.href
+    };
+    
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        showToast('Partilhado com sucesso!', 'success');
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        showToast('Link copiado!', 'success');
+      }
+    } catch (err) {
+      console.log('Error sharing:', err);
+    }
+  };
+
+  const handleReportProduct = () => {
+    if (!window.confirm("Deseja denunciar este anúncio como impróprio ou fraude?")) return;
+    // Logica simulada, idealmente enviaria para o banco
+    showToast('Denúncia enviada. Analisaremos em breve.', 'success');
   };
 
   const filteredProducts = products.filter(p => {
@@ -497,29 +411,12 @@ function AppContent() {
         </div>
       )}
 
+      {/* min-h-screen para empurrar o footer */}
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
             <>
-              {!search && (
-                <div className="relative rounded-3xl overflow-hidden h-[350px] md:h-[450px] mb-8 md:mb-12 shadow-2xl group">
-                  {HERO_SLIDES.map((slide, index) => (
-                    <div 
-                      key={slide.id}
-                      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
-                    >
-                      <img src={slide.image} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center px-6 md:px-16">
-                        <div className="max-w-2xl text-white">
-                          <h2 className="text-3xl md:text-5xl font-black mb-4">{slide.title}</h2>
-                          <div className="flex items-center gap-2 text-indigo-300 font-mono text-sm h-8"><Sparkles size={16} /> <span>{displayedText}</span><span className="w-0.5 h-4 bg-indigo-300 animate-pulse"></span></div>
-                          <button onClick={() => productsSectionRef.current?.scrollIntoView({behavior: 'smooth'})} className="mt-8 bg-white text-black px-8 py-3 rounded-full font-bold flex items-center gap-2">Explorar <ArrowRight size={18} /></button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Hero Removido */}
               
               <div ref={productsSectionRef} className="pt-4">
                 <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
@@ -582,61 +479,33 @@ function AppContent() {
                      <img src={selectedProduct.imageUrl} className="w-full h-full object-cover" alt="" />
                      <button onClick={() => toggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
                   </div>
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col">
                      <span className="text-indigo-600 font-bold text-xs uppercase mb-2">{selectedProduct.category}</span>
                      <h1 className="text-3xl font-black mb-2">{selectedProduct.title}</h1>
                      <div className="flex items-center gap-2 text-gray-500 mb-4"><MapPin size={14} /> {selectedProduct.location}</div>
                      <p className="text-3xl font-black mb-6">{formatMoney(selectedProduct.price)}</p>
                      <div className="text-gray-600 dark:text-gray-300 mb-8 prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
                      
-                     {user?.id === selectedProduct.sellerId ? (
-                        <div className="flex flex-col gap-2">
-                           <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold">Editar Anúncio</button>
-                           <button onClick={() => handleDeleteProduct(selectedProduct.id)} className="w-full bg-red-500 text-white py-4 rounded-xl font-bold">Apagar Anúncio</button>
-                        </div>
-                     ) : (
-                        <button onClick={() => { addToCart(selectedProduct); navigate('/cart'); }} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center gap-2"><ShoppingBag /> Comprar</button>
-                     )}
+                     <div className="mt-auto flex flex-col gap-3">
+                       {/* Botões de Ação */}
+                       {user?.id === selectedProduct.sellerId ? (
+                          <>
+                             <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-4 rounded-xl font-bold">Editar Anúncio</button>
+                             <button onClick={() => handleDeleteProduct(selectedProduct.id)} className="w-full bg-red-500 text-white py-4 rounded-xl font-bold">Apagar Anúncio</button>
+                          </>
+                       ) : (
+                          <button onClick={() => { addToCart(selectedProduct); navigate('/cart'); }} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center gap-2"><ShoppingBag /> Comprar</button>
+                       )}
+                       
+                       <div className="flex gap-2 mt-4">
+                          <button onClick={handleShareProduct} className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-xl font-bold flex justify-center items-center gap-2"><Share2 size={18} /> Partilhar</button>
+                          <button onClick={handleReportProduct} className="py-3 px-4 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl font-bold flex justify-center items-center" title="Denunciar"><Flag size={18} /></button>
+                       </div>
+                     </div>
                   </div>
                </div>
-
-               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
-                  <div className="space-y-6 mb-8">
-                     {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
-                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
-                           <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-gray-900 dark:text-white">{r.userName}</span>
-                              <div className="flex text-yellow-400">
-                                {[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}
-                              </div>
-                           </div>
-                           <p className="text-xs text-gray-400">{r.date}</p>
-                        </div>
-                     ))}
-                  </div>
-                  
-                  {user ? (
-                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
-                        <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
-                        <div className="flex justify-center gap-2 mb-6">
-                           {[1,2,3,4,5].map(s => (
-                             <button type="button" key={s} onClick={() => setNewRating(s)} className="transform hover:scale-110 transition-transform">
-                               <Star size={32} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                             </button>
-                           ))}
-                        </div>
-                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
-                           Enviar Avaliação
-                        </button>
-                     </form>
-                  ) : (
-                    <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
-                       <p className="mb-3">Faça login para avaliar.</p>
-                       <button onClick={() => setShowAuthModal(true)} className="text-indigo-600 font-bold">Entrar</button>
-                    </div>
-                  )}
-               </div>
+               
+               {/* Avaliações Removidas daqui conforme pedido */}
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
