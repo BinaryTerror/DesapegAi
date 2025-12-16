@@ -9,7 +9,7 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, Category, ViewState, Review } from './types';
 
-// Imports de ícones (ADICIONADO ChevronLeft AQUI)
+// Imports de ícones
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Smartphone, Save, CheckCircle, 
   Info, PlusCircle, XCircle, Lock, Heart, LogIn, Edit, 
@@ -19,14 +19,9 @@ import {
 import DOMPurify from 'dompurify'; 
 
 // --- CONSTANTES ---
-
-const HERO_PHRASES = [
-  "Roupas com história? Compra, vende, repete!",
-  "Dá tchau ao velho, olá ao novo estilo!",
-  "Moda circular: roda, gira, brilha!",
-  "Transforma teu guarda-roupa em aventuras fashion!",
-  "Estilo que roda: compra, vende, repete!"
-];
+const formatMoney = (amount: number) => {
+  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
+};
 
 const HERO_SLIDES = [
   { id: 1, image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1920&auto=format&fit=crop', title: 'Moda que conta história', subtitle: 'Encontre peças únicas em Moçambique' },
@@ -34,39 +29,20 @@ const HERO_SLIDES = [
   { id: 3, image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1920&auto=format&fit=crop', title: 'Economia Circular', subtitle: 'Sustentabilidade em primeiro lugar' }
 ];
 
-const formatMoney = (amount: number) => {
-  return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
-};
-
 // --- COMPONENTES AUXILIARES ---
 
 // 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
   <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-      
       <div className="flex items-center gap-1">
         <span>Powered by</span>
-        <a 
-          href="http://piripiri.chat" 
-          target="_blank" 
-          rel="noreferrer"
-          className="font-bold text-indigo-600 hover:underline"
-        >
-          Otseven
-        </a>
+        <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="font-bold text-indigo-600 hover:underline">Otseven</a>
       </div>
-
       <div className="flex gap-6">
         <span>© 2025 DesapegAi</span>
-        <button 
-          onClick={onOpenAbout} 
-          className="hover:text-indigo-600 transition-colors font-medium hover:underline"
-        >
-          Sobre nós
-        </button>
+        <button onClick={onOpenAbout} className="hover:text-indigo-600 transition-colors font-medium hover:underline">Sobre nós</button>
       </div>
-
     </div>
   </footer>
 );
@@ -77,15 +53,8 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
-        
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10">
-          <XCircle size={24} className="text-gray-400" />
-        </button>
-        
-        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">
-          Quem Somos
-        </h2>
-        
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><XCircle size={24} className="text-gray-400" /></button>
+        <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">Quem Somos</h2>
         <div className="space-y-6">
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
@@ -93,20 +62,15 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
-            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
-              <Linkedin size={18} /> Conectar no LinkedIn
-            </a>
+            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20"><Linkedin size={18} /> Conectar no LinkedIn</a>
           </div>
-
           <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative w-20 h-20 mx-auto mb-3">
               <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
-            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
-              <Globe size={18} /> Ver Portfolio
-            </a>
+            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver Portfolio</a>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
@@ -161,13 +125,15 @@ function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
-  const [newRating, setNewRating] = useState(5);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [tempPhone, setTempPhone] = useState('');
   
+  // Novo estado para contagem de produtos no Navbar
+  const [userProductCount, setUserProductCount] = useState(0);
+
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
 
@@ -194,8 +160,8 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [showPlansModal, setShowPlansModal] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   // --- EFEITOS ---
   useEffect(() => {
@@ -226,6 +192,7 @@ function AppContent() {
         else { 
           setUser(null); 
           setUserProfile(null);
+          setUserProductCount(0);
         }
       });
 
@@ -235,6 +202,13 @@ function AppContent() {
     initializeApp();
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // --- HANDLERS ---
+
   const handleUserLogin = async (authUser: any) => {
     setUser(authUser);
     const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
@@ -242,6 +216,10 @@ function AppContent() {
       setUserProfile(data);
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
+      
+      // Busca contagem de produtos para o Navbar
+      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id);
+      setUserProductCount(count || 0);
     }
   };
 
@@ -305,31 +283,6 @@ function AppContent() {
     showToast('Favoritos atualizados', 'info');
   };
 
-  const handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProduct) return showToast('Erro', 'error');
-    try {
-        const { error } = await supabase.from('reviews').insert([{
-            product_id: selectedProduct.id,
-            user_id: user.id,
-            user_name: userProfile?.full_name || 'Usuário',
-            rating: newRating,
-            comment: ""
-        }]);
-        if (error) throw error;
-        const newReview: Review = {
-            id: Date.now().toString(),
-            userName: userProfile?.full_name || 'Eu',
-            comment: "",
-            rating: newRating,
-            date: new Date().toLocaleDateString('pt-MZ')
-        };
-        setReviews([newReview, ...reviews]);
-        setNewRating(5);
-        showToast('Avaliação enviada!', 'success');
-    } catch (err) { console.error(err); showToast('Erro ao avaliar', 'error'); }
-  };
-
   const handleNavigate = (newView: ViewState | 'ADMIN') => {
     if (newView === 'SELL') { 
       if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
@@ -346,7 +299,12 @@ function AppContent() {
   // ✅ BOTÃO VENDER FLUTUANTE PARA MOBILE
   const handleFloatingSell = () => {
     if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
-    else { setEditingProduct(null); setShowSellForm(true); }
+    else { 
+      // Atualiza o perfil para garantir limite correto antes de abrir
+      handleUserLogin(user); 
+      setEditingProduct(null); 
+      setShowSellForm(true); 
+    }
   };
 
   const handleSellSubmit = async (productData: any) => {
@@ -381,6 +339,7 @@ function AppContent() {
         fetchProducts();
         setShowSellForm(false);
         setEditingProduct(null);
+        handleUserLogin(user); // Atualiza contagem
         navigate('/');
     } else {
         showToast('Erro ao salvar.', 'error');
@@ -401,6 +360,7 @@ function AppContent() {
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if(!error) {
         setProducts(prev => prev.filter(p => p.id !== productId));
+        handleUserLogin(user); // Atualiza contagem
         showToast('Apagado.', 'success');
     }
   };
@@ -423,18 +383,6 @@ function AppContent() {
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
-    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
-    if (data) {
-        setReviews(data.map((r: any) => ({
-            id: r.id,
-            userName: r.user_name,
-            comment: r.comment,
-            rating: r.rating,
-            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
-        })));
-    } else {
-        setReviews([]);
-    }
     navigate('/product');
   };
 
@@ -499,7 +447,9 @@ function AppContent() {
         onSearch={setSearch}
         user={user}
         userProfile={userProfile}
+        userProductCount={userProductCount} // Passa a contagem para o Navbar
         onOpenAuth={() => setShowAuthModal(true)}
+        onOpenPlans={() => setShowPlansModal(true)} // Abre o modal de planos
       />
 
       {toast && (<div className={`fixed top-24 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 font-bold animate-slide-up ${toast.type === 'success' ? 'bg-green-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>{toast.msg}</div>)}
@@ -528,6 +478,25 @@ function AppContent() {
         <Routes>
           <Route path="/" element={
             <>
+              {/* Hero (Opcional, removido no seu pedido anterior) */}
+              {!search && (
+                <div className="relative rounded-3xl overflow-hidden h-[350px] md:h-[450px] mb-8 md:mb-12 shadow-2xl group">
+                  {HERO_SLIDES.map((slide, index) => (
+                    <div 
+                      key={slide.id}
+                      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                      <img src={slide.image} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center px-6 md:px-16">
+                        <div className="max-w-2xl text-white">
+                          <h2 className="text-3xl md:text-5xl font-black mb-4">{slide.title}</h2>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <div ref={productsSectionRef} className="pt-4">
                 <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1">
@@ -598,7 +567,7 @@ function AppContent() {
                      <div className="text-gray-600 dark:text-gray-300 mb-8 prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
                      
                      <div className="mt-auto space-y-3">
-                       {/* Lógica de Botões do Produto (Dono ou Admin podem apagar) */}
+                       {/* Lógica de Botões do Produto */}
                        {(user?.id === selectedProduct.sellerId || userProfile?.role === 'admin') ? (
                           <div className="flex flex-col gap-2">
                              {user?.id === selectedProduct.sellerId && (
@@ -617,44 +586,9 @@ function AppContent() {
                      </div>
                   </div>
                </div>
+               
+               {/* DIV DE AVALIAÇÕES REMOVIDA DAQUI */}
 
-               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
-                  <div className="space-y-6 mb-8">
-                     {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
-                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
-                           <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-gray-900 dark:text-white">{r.userName}</span>
-                              <div className="flex text-yellow-400">
-                                {[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}
-                              </div>
-                           </div>
-                           <p className="text-xs text-gray-400">{r.date}</p>
-                        </div>
-                     ))}
-                  </div>
-                  
-                  {user ? (
-                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
-                        <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
-                        <div className="flex justify-center gap-2 mb-6">
-                           {[1,2,3,4,5].map(s => (
-                             <button type="button" key={s} onClick={() => setNewRating(s)} className="transform hover:scale-110 transition-transform">
-                               <Star size={32} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                             </button>
-                           ))}
-                        </div>
-                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
-                           Enviar Avaliação
-                        </button>
-                     </form>
-                  ) : (
-                    <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
-                       <p className="mb-3">Faça login para avaliar.</p>
-                       <button onClick={() => setShowAuthModal(true)} className="text-indigo-600 font-bold">Entrar</button>
-                    </div>
-                  )}
-               </div>
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
@@ -676,7 +610,6 @@ function AppContent() {
               <div className="text-center mb-10 bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8">
                 <img src={userProfile?.avatar_url || `https://ui-avatars.com/api/?name=${userProfile?.full_name || 'User'}&size=100`} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
                 
-                {/* Edição de Nome */}
                 <div className="flex items-center justify-center gap-2 mb-1">
                   {isEditingName ? (
                     <div className="flex items-center gap-2">
@@ -699,11 +632,10 @@ function AppContent() {
                 <p className="text-gray-500 mb-4">{userProfile?.whatsapp || 'Sem contato'}</p>
                 <button onClick={() => setShowPhoneModal(true)} className="px-6 py-2 border rounded-full font-bold text-sm">Editar Contato</button>
                 
-                {/* ✅ BOTÃO NOVO: ADICIONAR CRÉDITOS */}
+                {/* BOTÃO + CRÉDITOS NO PERFIL TAMBÉM */}
                 <button onClick={() => setShowPlansModal(true)} className="mt-4 px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-bold text-sm flex items-center gap-2 mx-auto shadow-lg hover:scale-105 transition-transform"><CreditCard size={16}/> Planos & Créditos</button>
               </div>
               
-              {/* Meus Favoritos no Perfil */}
               <div className="mb-10">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Heart className="text-red-500" size={20}/> Meus Favoritos</h3>
                 {products.filter(p => favorites.has(p.id)).length === 0 ? <p className="text-gray-500 text-sm">Nenhum favorito.</p> : (
@@ -759,7 +691,7 @@ function AppContent() {
       
       {showAboutModal && <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />}
       
-      {/* MODAL DE PLANOS CHAMADO AQUI */}
+      {/* MODAL DE PLANOS (Chamado pelo botão da Navbar e do Perfil) */}
       {showPlansModal && user && <PlansModal onClose={() => setShowPlansModal(false)} userEmail={user.email} userId={user.id} />}
 
       {showPaymentModal && (
