@@ -57,7 +57,7 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
       </div>
 
       <div className="flex gap-6">
-        <span>© 2025 DesapegAi</span>
+        <span>© 2025 DesapegAí</span>
         <button 
           onClick={onOpenAbout} 
           className="hover:text-indigo-600 transition-colors font-medium hover:underline"
@@ -85,27 +85,60 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           Quem Somos
         </h2>
         
-        <div className="space-y-6">
-          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div className="relative w-20 h-20 mx-auto mb-3">
-              <img src="https://ui-avatars.com/api/?name=Lino+Alfredo&background=0077b5&color=fff&size=128" alt="Lino Alfredo" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Lino Alfredo</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Software Engineer</p>
-            <a href="https://linkedin.com/in/lino-alfredo-07335237a" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-[#0077b5] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:brightness-110 transition shadow-lg shadow-blue-900/20">
-              <Linkedin size={18} /> Conectar no LinkedIn
-            </a>
-          </div>
+     <div className="space-y-6 text-left">
 
-          <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div className="relative w-20 h-20 mx-auto mb-3">
-              <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
-            <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg">
-              <Globe size={18} /> Ver Portfolio
-            </a>
+  {/* OTSEVEN */}
+  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+    <div className="flex items-center gap-4 mb-4">
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg">
+        O7
+      </div>
+      <div>
+        <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
+          Otseven
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">
+          Startup de Tecnologia
+        </p>
+      </div>
+    </div>
+
+    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+      A <strong>Otseven</strong> é uma startup dedicada ao desenvolvimento de aplicações digitais
+      inovadoras, focadas em resolver problemas reais através da tecnologia.
+      Criamos produtos com impacto social, design moderno e foco no futuro digital africano.
+    </p>
+  </div>
+
+  {/* PROJETO */}
+  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+    <h4 className="text-sm font-extrabold text-gray-900 dark:text-white mb-2 uppercase tracking-wider">
+      Sobre este projeto
+    </h4>
+
+    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+      Este projeto foi desenvolvido no âmbito da Otseven, com o objetivo de criar
+      uma solução prática, acessível e centrada no utilizador.
+      Todo o desenvolvimento, arquitetura e visão do produto seguem os princípios
+      de inovação, simplicidade e escalabilidade.
+    </p>
+  </div>
+
+  {/* COLABORADORES */}
+  <div className="bg-slate-50 dark:bg-slate-700/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+    <h4 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">
+      Colaboração
+    </h4>
+
+    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+      O desenvolvimento direto deste projeto contou com a colaboração de membros
+      da Otseven, com destaque para <strong>Lino Alfredo</strong> e <strong>Alex Nhabinde</strong>,
+      que contribuíram ativamente na implementação técnica e evolução da plataforma.
+    </p>
+  </div>
+
+</div>
+           
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
