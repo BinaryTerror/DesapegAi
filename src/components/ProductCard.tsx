@@ -1,7 +1,7 @@
 import React from 'react';
-import { ShoppingBag, Heart, User, MapPin, Trash2, CheckCircle, Edit } from 'lucide-react';
-import { Product } from '../types';
-import DOMPurify from 'dompurify'; // Importante para segurança
+import { ShoppingBag, Heart, Trash2, CheckCircle, Edit } from 'lucide-react';
+import { Product, UserProfile } from '../types';
+import DOMPurify from 'dompurify';
 
 interface ProductCardProps {
   product: Product;
@@ -9,10 +9,11 @@ interface ProductCardProps {
   onClick: (product: Product) => void;
   isLiked?: boolean;
   onToggleLike?: (product: Product) => void;
-  currentUserId?: string; // ID do usuário logado
+  currentUserId?: string;
+  userProfile?: UserProfile | null; // Adicionado para verificar Admin
   onMarkAsSold?: (productId: string) => void;
   onDelete?: (productId: string) => void;
-  onEdit?: (product: Product) => void; // Para editar
+  onEdit?: (product: Product) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -22,6 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isLiked, 
   onToggleLike, 
   currentUserId, 
+  userProfile, // Recebe o perfil
   onMarkAsSold, 
   onDelete, 
   onEdit 
@@ -35,15 +37,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
   };
 
-  // Sanitiza a descrição para evitar injeção de scripts (XSS)
-  const sanitizedDescription = DOMPurify.sanitize(product.description || '');
   const formattedDate = new Date(product.createdAt).toLocaleDateString('pt-MZ');
+  
+  // VERIFICA SE PODE EDITAR/APAGAR: É o dono OU é Admin
+  const isOwner = currentUserId === product.sellerId;
+  const isAdmin = userProfile?.role === 'admin';
+  const canManage = isOwner || isAdmin;
 
   return (
     <div 
       className={`group relative bg-white dark:bg-slate-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ring-1 ring-gray-100 dark:ring-slate-700 hover:ring-indigo-100 dark:hover:ring-indigo-900/30 flex flex-col h-full ${product.status === 'sold' ? 'opacity-70 grayscale' : ''}`}
     >
-      {/* Image Container */}
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-slate-700" onClick={() => onClick(product)}>
         <img 
           src={product.imageUrl} 
@@ -54,28 +58,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {/* Badges */}
         <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
             {discount > 0 && (
             <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
                 -{discount}%
             </div>
             )}
-            {product.isPromoted && (
-            <div className="bg-indigo-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/20">
-                Destaque
-            </div>
-            )}
         </div>
 
-        {/* Sold Badge */}
         {product.status === 'sold' && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
             <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">VENDIDO</span>
           </div>
         )}
 
-        {/* Like Button */}
         {onToggleLike && (
           <button 
             className={`absolute top-2 right-2 md:top-3 md:right-3 p-2 rounded-full transition-all shadow-sm z-20 ${
@@ -93,7 +89,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
 
-      {/* Content */}
       <div className="p-3 md:p-4 flex flex-col flex-1" onClick={() => onClick(product)}>
         <div className="mb-auto">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors mb-1">
@@ -117,29 +112,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-slate-700/50 mt-1">
            <div className="flex items-center gap-1.5">
              <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-200 dark:bg-slate-600 overflow-hidden ring-1 ring-white dark:ring-slate-700">
-                {/* Placeholder para Avatar */}
                 <img src={`https://ui-avatars.com/api/?name=${product.sellerName || 'User'}&background=random`} alt="" className="w-full h-full object-cover" />
              </div>
              <span className="text-[10px] md:text-[11px] text-gray-500 dark:text-slate-400 font-medium truncate max-w-[60px] md:max-w-[80px]">{product.sellerName || 'Vendedor'}</span>
            </div>
 
-           {/* Botões de Ação (Diferentes para Dono vs Outros) */}
-           {currentUserId === product.sellerId ? (
+           {/* Botões de Ação */}
+           {canManage ? (
              <div className="flex gap-1">
-                {product.status !== 'sold' && onMarkAsSold && (
+                {product.status !== 'sold' && onMarkAsSold && isOwner && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onMarkAsSold(product.id); }}
-                    className="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-lg text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50"
-                    title="Marcar como Vendido"
+                    className="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-lg text-xs font-bold hover:bg-green-200"
+                    title="Vendido"
                   >
                     <CheckCircle size={14} />
                   </button>
                 )}
-                {onEdit && (
+                {onEdit && isOwner && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(product); }}
-                    className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50"
-                    title="Editar Anúncio"
+                    className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-200"
+                    title="Editar"
                   >
                     <Edit size={14} />
                   </button>
@@ -147,8 +141,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {onDelete && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
-                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50"
-                    title="Apagar Anúncio"
+                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg text-xs font-bold hover:bg-red-200"
+                    title="Apagar"
                   >
                     <Trash2 size={14} />
                   </button>
