@@ -87,55 +87,27 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 };
 
-// 3. Filtro de Categorias (CORRIGIDO Z-INDEX)
+// 3. Filtro de Categorias (CORRIGIDO)
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-
   return (
-    // CORREÇÃO: z-40 para garantir que fique acima dos produtos
-    <div className="relative w-full mb-8 z-40">
+    <div className="relative w-full mb-6 z-30">
       <div className="flex items-center justify-between">
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${
-            isOpen || activeCat 
-              ? 'bg-indigo-600 text-white shadow-indigo-200' 
-              : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'
-          }`}
-        >
+        <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${isOpen || activeCat ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'}`}>
           <Filter size={18} />
           {activeCat ? activeCat : 'Filtrar por Categoria'}
           {isOpen ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
         </button>
-
         {activeCat && (
-          <button 
-            onClick={() => onSelect(null)}
-            className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"
-          >
-            <X size={14} /> Limpar filtro
-          </button>
+          <button onClick={() => onSelect(null)} className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"><X size={14} /> Limpar filtro</button>
         )}
       </div>
-
-      {/* Dropdown com absolute para flutuar sobre o conteúdo */}
       {isOpen && (
-        <div className="absolute top-14 left-0 w-full md:w-3/4 lg:w-1/2 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-2xl z-50 animate-fade-in">
+        <div className="absolute top-14 left-0 w-full md:w-[600px] bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-2xl z-40 animate-fade-in">
           <div className="flex flex-wrap gap-2">
-            <button 
-              onClick={() => { onSelect(null); setIsOpen(false); }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${!activeCat ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}
-            >
-              Todas
-            </button>
+            <button onClick={() => { onSelect(null); setIsOpen(false); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${!activeCat ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-transparent hover:bg-gray-100'}`}>Todas</button>
             {Object.values(Category).map(cat => (
-              <button 
-                key={cat} 
-                onClick={() => { onSelect(cat); setIsOpen(false); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${activeCat === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 border-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'}`}
-              >
-                {cat}
-              </button>
+              <button key={cat} onClick={() => { onSelect(cat); setIsOpen(false); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors border ${activeCat === cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 border-transparent hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600'}`}>{cat}</button>
             ))}
           </div>
         </div>
@@ -161,29 +133,29 @@ function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
-  // States
-  const [newRating, setNewRating] = useState(5);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [tempPhone, setTempPhone] = useState('');
   
-  // Estado para Edição de Nome no Perfil
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
 
-  // Data
   const [products, setProducts] = useState<Product[]>([]);
+  
+  // ✅ CORREÇÃO BUG 3: Inicialização Lazy para ler o localStorage imediatamente
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    const saved = localStorage.getItem('desapegai_selected_product');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [cart, setCart] = useState<CartItem[]>(() => JSON.parse(localStorage.getItem('desapegai_cart') || '[]'));
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     const savedFavs = localStorage.getItem('desapegai_favorites');
     return savedFavs ? new Set(JSON.parse(savedFavs)) : new Set();
   });
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
 
-  // UI
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [search, setSearch] = useState('');
@@ -193,17 +165,7 @@ function AppContent() {
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'info'} | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   
-  // Payment
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-
-  // Hero Animation
-  const [displayedText, setDisplayedText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loopNum, setLoopNum] = useState(0);
-  const [typingSpeed, setTypingSpeed] = useState(100);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   // --- EFEITOS ---
   useEffect(() => {
@@ -243,26 +205,6 @@ function AppContent() {
     initializeApp();
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length), 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const handleType = () => {
-      const currentPhraseIndex = loopNum % HERO_PHRASES.length;
-      const fullText = HERO_PHRASES[currentPhraseIndex];
-      setDisplayedText(isDeleting ? fullText.substring(0, displayedText.length - 1) : fullText.substring(0, displayedText.length + 1));
-      setTypingSpeed(isDeleting ? 40 : 100);
-      if (!isDeleting && displayedText === fullText) { setTimeout(() => setIsDeleting(true), 2000); }
-      else if (isDeleting && displayedText === '') { setIsDeleting(false); setLoopNum(loopNum + 1); setTypingSpeed(500); }
-    };
-    const timer = setTimeout(handleType, typingSpeed);
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, loopNum, typingSpeed]);
-
-  // --- HANDLERS ---
-
   const handleUserLogin = async (authUser: any) => {
     setUser(authUser);
     const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
@@ -298,16 +240,18 @@ function AppContent() {
   };
 
   const handleSavePhone = async () => {
-    if (tempPhone.length < 9) return showToast('Inválido', 'error');
+    const phoneRegex = /^8\d{8}$/;
+    if (!phoneRegex.test(tempPhone)) return showToast('Número inválido. Deve começar com 8 e ter 9 dígitos.', 'error');
     const { error } = await supabase.from('profiles').update({ whatsapp: tempPhone }).eq('id', user.id);
     if (!error) {
       setUserProfile(prev => prev ? { ...prev, whatsapp: tempPhone } : null);
       setShowPhoneModal(false);
       showToast('Salvo!');
+    } else {
+      showToast('Erro ao salvar.', 'error');
     }
   };
 
-  // ✅ Atualizar Nome
   const handleUpdateName = async () => {
     if (!tempName.trim()) return showToast('Nome inválido', 'error');
     const { error } = await supabase.from('profiles').update({ full_name: tempName }).eq('id', user.id);
@@ -331,31 +275,6 @@ function AppContent() {
     showToast('Favoritos atualizados', 'info');
   };
 
-  const handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProduct) return showToast('Erro', 'error');
-    try {
-        const { error } = await supabase.from('reviews').insert([{
-            product_id: selectedProduct.id,
-            user_id: user.id,
-            user_name: userProfile?.full_name || 'Usuário',
-            rating: newRating,
-            comment: ""
-        }]);
-        if (error) throw error;
-        const newReview: Review = {
-            id: Date.now().toString(),
-            userName: userProfile?.full_name || 'Eu',
-            comment: "",
-            rating: newRating,
-            date: new Date().toLocaleDateString('pt-MZ')
-        };
-        setReviews([newReview, ...reviews]);
-        setNewRating(5);
-        showToast('Avaliação enviada!', 'success');
-    } catch (err) { console.error(err); showToast('Erro ao avaliar', 'error'); }
-  };
-
   const handleNavigate = (newView: ViewState | 'ADMIN') => {
     if (newView === 'SELL') { 
       if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
@@ -376,7 +295,7 @@ function AppContent() {
        description: productData.description,
        price: productData.price,
        image_url: productData.imageUrl,
-       images: productData.images, // Array de imagens
+       images: productData.images,
        category: productData.category,
        subcategory: productData.subcategory,
        condition: productData.condition,
@@ -443,18 +362,6 @@ function AppContent() {
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
-    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
-    if (data) {
-        setReviews(data.map((r: any) => ({
-            id: r.id,
-            userName: r.user_name,
-            comment: r.comment,
-            rating: r.rating,
-            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
-        })));
-    } else {
-        setReviews([]);
-    }
     navigate('/product');
   };
 
@@ -477,8 +384,7 @@ function AppContent() {
     navigator.clipboard.writeText(phone);
     showToast('Número copiado!', 'success');
   };
-
-  // ✅ Função de Partilhar
+  
   const handleShareProduct = async () => {
     if (!selectedProduct) return;
     const shareData = {
@@ -496,11 +402,10 @@ function AppContent() {
     } catch (err) { console.log(err); }
   };
 
-  // ✅ Função de Denunciar (WhatsApp do Admin)
   const handleReportProduct = () => {
     if (!selectedProduct) return;
     const adminPhone = "258853691613";
-    const message = `Olá Admin. Quero denunciar o produto "${selectedProduct.title}" (ID: ${selectedProduct.id}) por conteúdo impróprio ou suspeita de fraude.`;
+    const message = `⚠️ *DENÚNCIA DE PRODUTO*\n\nProduto: ${selectedProduct.title}\nID: ${selectedProduct.id}\nMotivo: Conteúdo suspeito ou fraude.`;
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -537,14 +442,15 @@ function AppContent() {
         </div>
       )}
 
-      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
+      {/* ✅ CORREÇÃO 2: Aumentei o padding-top para evitar sobreposição */}
+      <main className="pt-28 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
             <>
-              {/* Hero Removed */}
+              {/* ✅ CORREÇÃO 2: Barra de filtro dentro do fluxo normal */}
+              <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
               
-              <div ref={productsSectionRef} className="pt-4">
-                <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
+              <div ref={productsSectionRef}>
                 <div className="flex-1">
                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2></div>
                    {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
@@ -597,7 +503,7 @@ function AppContent() {
           } />
 
           <Route path="/product" element={selectedProduct ? (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto animate-fade-in">
                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><ChevronLeft /> Voltar</button>
                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-8">
                   <div className="h-[500px] bg-gray-100 relative">
@@ -621,52 +527,15 @@ function AppContent() {
                           <button onClick={() => { addToCart(selectedProduct); navigate('/cart'); }} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold flex justify-center gap-2"><ShoppingBag /> Comprar</button>
                        )}
                        
-                       {/* Botões de Ação Extras */}
-                       <div className="flex gap-2">
+                       <div className="flex gap-2 mt-4">
                           <button onClick={handleShareProduct} className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white rounded-xl font-bold flex justify-center items-center gap-2"><Share2 size={18}/> Partilhar</button>
                           <button onClick={handleReportProduct} className="py-3 px-4 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl font-bold flex justify-center items-center" title="Denunciar"><Flag size={18} /></button>
                        </div>
                      </div>
                   </div>
                </div>
-
-               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-24">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
-                  <div className="space-y-6 mb-8">
-                     {reviews.length === 0 ? <p className="text-gray-500">Sem avaliações ainda.</p> : reviews.map(r => (
-                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
-                           <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-gray-900 dark:text-white">{r.userName}</span>
-                              <div className="flex text-yellow-400">
-                                {[...Array(5)].map((_,i) => <Star key={i} size={14} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}
-                              </div>
-                           </div>
-                           <p className="text-xs text-gray-400">{r.date}</p>
-                        </div>
-                     ))}
-                  </div>
-                  
-                  {user ? (
-                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-6 rounded-xl text-center">
-                        <p className="mb-4 font-bold text-gray-700 dark:text-gray-200">Deixe sua avaliação:</p>
-                        <div className="flex justify-center gap-2 mb-6">
-                           {[1,2,3,4,5].map(s => (
-                             <button type="button" key={s} onClick={() => setNewRating(s)} className="transform hover:scale-110 transition-transform">
-                               <Star size={32} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
-                             </button>
-                           ))}
-                        </div>
-                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-colors">
-                           Enviar Avaliação
-                        </button>
-                     </form>
-                  ) : (
-                    <div className="text-center p-6 bg-gray-50 dark:bg-slate-700/30 rounded-xl">
-                       <p className="mb-3">Faça login para avaliar.</p>
-                       <button onClick={() => setShowAuthModal(true)} className="text-indigo-600 font-bold">Entrar</button>
-                    </div>
-                  )}
-               </div>
+               
+               {/* ✅ CORREÇÃO 1: DIV DE AVALIAÇÕES REMOVIDA (NÃO EXISTE MAIS) */}
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
