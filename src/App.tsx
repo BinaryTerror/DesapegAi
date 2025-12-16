@@ -18,6 +18,21 @@ import {
 import DOMPurify from 'dompurify'; 
 
 // --- CONSTANTES ---
+
+const HERO_PHRASES = [
+  "Roupas com história? Compra, vende, repete!",
+  "Dá tchau ao velho, olá ao novo estilo!",
+  "Moda circular: roda, gira, brilha!",
+  "Transforma teu guarda-roupa em aventuras fashion!",
+  "Estilo que roda: compra, vende, repete!"
+];
+
+const HERO_SLIDES = [
+  { id: 1, image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1920&auto=format&fit=crop', title: 'Moda que conta história', subtitle: 'Encontre peças únicas em Moçambique' },
+  { id: 2, image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1920&auto=format&fit=crop', title: 'Seu Estilo, Sua Regra', subtitle: 'Preços incríveis' },
+  { id: 3, image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1920&auto=format&fit=crop', title: 'Economia Circular', subtitle: 'Sustentabilidade em primeiro lugar' }
+];
+
 const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
 };
@@ -26,7 +41,7 @@ const formatMoney = (amount: number) => {
 
 // 1. Footer Discreto
 const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
-  <footer className="py-10 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+  <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
     <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
       
       <div className="flex items-center gap-1">
@@ -145,6 +160,7 @@ function AppContent() {
   const navigate = useNavigate();
   const productsSectionRef = useRef<HTMLDivElement>(null);
 
+  // States
   const [newRating, setNewRating] = useState(5);
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -326,7 +342,7 @@ function AppContent() {
     }
   };
 
-  // ✅ HANDLER PARA O BOTÃO FLUTUANTE
+  // ✅ BOTÃO VENDER FLUTUANTE PARA MOBILE
   const handleFloatingSell = () => {
     if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
     else { setEditingProduct(null); setShowSellForm(true); }
@@ -498,12 +514,13 @@ function AppContent() {
         </div>
       )}
 
-      {/* ✅ BOTÃO VENDER FLUTUANTE DE VOLTA */}
+      {/* ✅ BOTÃO VENDER FLUTUANTE CORRIGIDO COM TEXTO "VENDER" */}
       <button 
         onClick={handleFloatingSell}
-        className="lg:hidden fixed bottom-6 right-6 z-[1000] bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center border-2 border-white dark:border-slate-800"
+        className="lg:hidden fixed bottom-6 right-6 z-[1000] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30"
       >
-        <PlusCircle size={32} />
+        <PlusCircle size={24} />
+        <span>Vender</span>
       </button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
