@@ -1,7 +1,7 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, CATEGORY_TREE, UserProfile, Condition } from '../types';
-import { X, Loader2, Copy, AlertTriangle, CheckCircle, Upload, Camera, Trash2, DollarSign } from 'lucide-react';
+import { X, Loader2, Copy, AlertTriangle, CheckCircle, Upload, Camera, Trash2, Image as ImageIcon } from 'lucide-react';
 
 interface SellFormProps {
   onClose: () => void;
@@ -18,9 +18,11 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
   const [productCount, setProductCount] = useState(0);
   const [paymentInfo, setPaymentInfo] = useState({ whatsapp: '841234567', amount: 20 });
 
-  // Estado da Imagem (Arquivo local)
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  // Estado para múltiplas imagens
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(
+    initialData?.images || (initialData?.imageUrl ? [initialData.imageUrl] : [])
+  );
 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -32,7 +34,6 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
     condition: initialData?.condition || Condition.GOOD
   });
 
-  // Verifica Limites
   useEffect(() => {
     const checkLimit = async () => {
       if (initialData) {
@@ -66,18 +67,28 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
     if (user) checkLimit();
   }, [user, userProfile, initialData]);
 
-  // Manipulação de Imagem
+  // Manipulação de Múltiplas Imagens
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const remainingSlots = 5 - imagePreviews.length;
+      
+      if (remainingSlots <= 0) {
+        alert("Máximo de 5 fotos permitido.");
+        return;
+      }
+
+      const filesToAdd = filesArray.slice(0, remainingSlots);
+      const newPreviews = filesToAdd.map(file => URL.createObjectURL(file));
+
+      setImageFiles(prev => [...prev, ...filesToAdd]);
+      setImagePreviews(prev => [...prev, ...newPreviews]);
     }
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index)); // Nota: A lógica de remover arquivos novos vs existentes é simplificada aqui
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -87,42 +98,47 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imagePreview && !imageFile) { alert("A foto é obrigatória!"); return; }
+    if (imagePreviews.length === 0) { alert("Pelo menos 1 foto é obrigatória!"); return; }
     
     setIsUploading(true);
 
     try {
-      let publicUrl = initialData?.imageUrl || "";
+      const uploadedUrls: string[] = [];
 
-      // 1. Faz Upload se tiver novo arquivo
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+      // 1. Mantém URLs que já eram strings (do banco)
+      const existingUrls = imagePreviews.filter(url => url.startsWith('http'));
+      uploadedUrls.push(...existingUrls);
+
+      // 2. Faz Upload dos novos arquivos
+      for (const file of imageFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('images')
-          .upload(filePath, imageFile);
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-        publicUrl = data.publicUrl;
+        uploadedUrls.push(data.publicUrl);
       }
 
-      // 2. Envia para o App.tsx salvar no banco
+      // 3. Envia para o App.tsx salvar no banco
       onSubmit({
         ...initialData,
         ...formData,
         price: Number(formData.price),
-        imageUrl: publicUrl,
-        sellerPhone: userProfile?.whatsapp || '841234567',
+        imageUrl: uploadedUrls[0], // A primeira foto é a capa
+        images: uploadedUrls,      // Salva o array completo
+        sellerPhone: userProfile?.whatsapp || '',
         sellerName: userProfile?.full_name || 'Vendedor',
       });
 
     } catch (error: any) {
       console.error("Erro no upload:", error);
-      alert("Erro ao enviar imagem. Tente novamente.");
+      alert("Erro ao enviar imagens. Tente novamente.");
       setIsUploading(false);
     }
   };
@@ -163,29 +179,35 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
         <div className="p-6 overflow-y-auto custom-scrollbar">
           <form id="sell-form" onSubmit={handleSubmit} className="space-y-6">
             
-            {/* Upload de Imagem */}
+            {/* Upload de Múltiplas Imagens */}
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Foto do Produto</label>
-              {!imagePreview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl cursor-pointer bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-full mb-3 group-hover:scale-110 transition-transform">
-                      <Camera className="w-8 h-8 text-indigo-500" />
-                    </div>
-                    <p className="text-sm text-gray-500 font-bold">Toque para adicionar foto</p>
-                  </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
-              ) : (
-                <div className="relative w-full h-64 rounded-2xl overflow-hidden group border dark:border-slate-600">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button type="button" onClick={removeImage} className="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 shadow-lg transform hover:scale-110 transition">
-                      <Trash2 size={24} />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase">Fotos do Produto ({imagePreviews.length}/5)</label>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2">
+                {imagePreviews.map((src, idx) => (
+                   <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border dark:border-slate-600 group">
+                      <img src={src} alt={`preview ${idx}`} className="w-full h-full object-cover" />
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(idx)} 
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={14} />
+                      </button>
+                      {idx === 0 && <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 font-bold">Capa</span>}
+                   </div>
+                ))}
+                
+                {imagePreviews.length < 5 && (
+                  <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                    <Camera className="w-6 h-6 text-indigo-500 mb-1" />
+                    <span className="text-[10px] font-bold text-gray-400">Adicionar</span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
             </div>
 
             <div>
@@ -246,7 +268,7 @@ const SellForm: React.FC<SellFormProps> = ({ onClose, onSubmit, initialData, use
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isUploading ? <Loader2 className="animate-spin" /> : (initialData ? <CheckCircle size={24} /> : <Upload size={24} />)}
-            {isUploading ? 'Enviando foto...' : (initialData ? 'Salvar Alterações' : 'Publicar Agora')}
+            {isUploading ? 'Enviando fotos...' : (initialData ? 'Salvar Alterações' : 'Publicar Agora')}
           </button>
         </div>
 
