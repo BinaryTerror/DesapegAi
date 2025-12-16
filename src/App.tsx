@@ -348,23 +348,30 @@ function AppContent() {
     else { setEditingProduct(null); setShowSellForm(true); }
   };
 
-  const handleSellSubmit = async (productData: any) => {
+const handleSellSubmit = async (productData: any) => {
     if (!user) return;
+    
+    // Tratamento de dados para evitar erros 400
+    const cleanPrice = parseFloat(productData.price);
+    const finalPrice = isNaN(cleanPrice) ? 0 : cleanPrice;
+    
     const payload = {
        title: productData.title,
        description: productData.description,
-       price: productData.price,
-       image_url: productData.imageUrl,
-       images: productData.images,
+       price: finalPrice,
+       image_url: productData.imageUrl || null, // Garante null se vazio
+       images: productData.images || [],        // Garante array vazio se não houver extras
        category: productData.category,
-       subcategory: productData.subcategory,
+       subcategory: productData.subcategory || null,
        condition: productData.condition,
-       location: productData.location,
+       location: productData.location || 'Maputo',
        user_id: user.id,
-       seller_name: productData.sellerName,
-       seller_phone: productData.sellerPhone,
+       seller_name: productData.sellerName || 'Vendedor',
+       seller_phone: productData.sellerPhone || null,
        status: 'available'
     };
+
+    console.log("Enviando Payload:", payload); // Para debug no console
 
     let error;
     if (editingProduct) {
@@ -376,13 +383,14 @@ function AppContent() {
     }
 
     if (!error) {
-        showToast('Sucesso!', 'success');
+        showToast('Sucesso! Produto publicado.', 'success');
         fetchProducts();
         setShowSellForm(false);
         setEditingProduct(null);
         navigate('/');
     } else {
-        showToast('Erro ao salvar.', 'error');
+        console.error("Erro Supabase:", error);
+        showToast(`Erro: ${error.message}`, 'error');
     }
   };
 
