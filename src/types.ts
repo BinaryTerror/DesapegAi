@@ -63,6 +63,8 @@ export interface UserProfile {
   whatsapp?: string;
   role: 'user' | 'admin';
   is_unlimited: boolean;
+    post_limit: number;    // Novo: Limite atual (ex: 6, 12, 18...)
+  unlimited_until?: string; // Novo: Data de expiração do VIP
 }
 
 export type ViewState = 'HOME' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'FAVORITES' | 'SELL' | 'ADMIN' | 'SETTINGS';
