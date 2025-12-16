@@ -18,21 +18,6 @@ import {
 import DOMPurify from 'dompurify'; 
 
 // --- CONSTANTES ---
-
-const HERO_PHRASES = [
-  "Roupas com história? Compra, vende, repete!",
-  "Dá tchau ao velho, olá ao novo estilo!",
-  "Moda circular: roda, gira, brilha!",
-  "Transforma teu guarda-roupa em aventuras fashion!",
-  "Estilo que roda: compra, vende, repete!"
-];
-
-const HERO_SLIDES = [
-  { id: 1, image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1920&auto=format&fit=crop', title: 'Moda que conta história', subtitle: 'Encontre peças únicas em Moçambique' },
-  { id: 2, image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1920&auto=format&fit=crop', title: 'Seu Estilo, Sua Regra', subtitle: 'Preços incríveis' },
-  { id: 3, image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1920&auto=format&fit=crop', title: 'Economia Circular', subtitle: 'Sustentabilidade em primeiro lugar' }
-];
-
 const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
 };
@@ -91,7 +76,7 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 const CategoryFilterBar = ({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="relative w-full mb-8 z-40">
+    <div className="relative w-full mb-6 z-30">
       <div className="flex items-center justify-between">
         <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${isOpen || activeCat ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700'}`}>
           <Filter size={18} />
@@ -164,7 +149,6 @@ function AppContent() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [toast, setToast] = useState<{msg: string, type: 'success'|'error'|'info'} | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
   
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -314,6 +298,12 @@ function AppContent() {
     }
   };
 
+  // ✅ BOTÃO VENDER FLUTUANTE PARA MOBILE
+  const handleFloatingSell = () => {
+    if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
+    else { setEditingProduct(null); setShowSellForm(true); }
+  };
+
   const handleSellSubmit = async (productData: any) => {
     if (!user) return;
     const payload = {
@@ -452,15 +442,9 @@ function AppContent() {
     const matchesSearch = search ? p.title.toLowerCase().includes(search.toLowerCase()) : true;
     return matchesCategory && matchesSearch;
   });
-  
-  // ✅ BOTÃO VENDER FLUTUANTE PARA MOBILE
-  const handleFloatingSell = () => {
-    if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
-    else { setEditingProduct(null); setShowSellForm(true); }
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
       <Navbar 
         cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
         onNavigate={handleNavigate}
@@ -489,18 +473,17 @@ function AppContent() {
       {/* ✅ BOTÃO VENDER FLUTUANTE (Visível apenas em Mobile) */}
       <button 
         onClick={handleFloatingSell}
-        className="lg:hidden fixed bottom-6 right-6 z-50 bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
+        className="lg:hidden fixed bottom-6 right-6 z-[90] bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center"
       >
         <PlusCircle size={28} />
       </button>
 
-      <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
+      {/* min-h-screen para manter o footer embaixo */}
+      <main className="pt-28 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Routes>
           <Route path="/" element={
             <>
-              {/* Hero Removed */}
-              
-              <div ref={productsSectionRef} className="pt-4">
+              <div ref={productsSectionRef}>
                 <CategoryFilterBar activeCat={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1">
                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2></div>
@@ -644,7 +627,6 @@ function AppContent() {
               <div className="text-center mb-10 bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8">
                 <img src={userProfile?.avatar_url || `https://ui-avatars.com/api/?name=${userProfile?.full_name || 'User'}&size=100`} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
                 
-                {/* Edição de Nome */}
                 <div className="flex items-center justify-center gap-2 mb-1">
                   {isEditingName ? (
                     <div className="flex items-center gap-2">
@@ -668,7 +650,6 @@ function AppContent() {
                 <button onClick={() => setShowPhoneModal(true)} className="px-6 py-2 border rounded-full font-bold text-sm">Editar Contato</button>
               </div>
               
-              {/* Meus Favoritos no Perfil */}
               <div className="mb-10">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Heart className="text-red-500" size={20}/> Meus Favoritos</h3>
                 {products.filter(p => favorites.has(p.id)).length === 0 ? <p className="text-gray-500 text-sm">Nenhum favorito.</p> : (
