@@ -37,8 +37,8 @@ export interface Product {
   description: string;
   price: number;
   originalPrice?: number;
-  imageUrl: string; // Imagem principal (Capa)
-  images?: string[]; // Array para até 5 fotos
+  imageUrl: string;
+  images?: string[];
   category: string;
   subcategory?: string;
   condition: string;
@@ -49,7 +49,6 @@ export interface Product {
   status: 'available' | 'sold';
   createdAt: string;
   likes: number;
-  isPromoted?: boolean;
 }
 
 export interface CartItem extends Product {
@@ -63,16 +62,8 @@ export interface UserProfile {
   whatsapp?: string;
   role: 'user' | 'admin';
   is_unlimited: boolean;
-    post_limit: number;    // Novo: Limite atual (ex: 6, 12, 18...)
-  unlimited_until?: string; // Novo: Data de expiração do VIP
+  post_limit: number;
+  unlimited_until?: string;
 }
 
 export type ViewState = 'HOME' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'FAVORITES' | 'SELL' | 'ADMIN' | 'SETTINGS';
-
-export interface Review {
-  id: string;
-  userName: string;
-  comment: string;
-  rating: number;
-  date: string;
-}
