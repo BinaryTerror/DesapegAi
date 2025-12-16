@@ -1,4 +1,3 @@
-// Enum para Categorias (usado no Sidebar e Formulários)
 export enum Category {
   WOMEN = 'Mulher',
   MEN = 'Homem',
@@ -12,7 +11,6 @@ export enum Category {
   OTHERS = 'Outras'
 }
 
-// Árvore de Subcategorias (usado no SellForm)
 export const CATEGORY_TREE: Record<string, string[]> = {
   [Category.WOMEN]: ['Vestidos', 'Blusas', 'Calças', 'Saias', 'Acessórios'],
   [Category.MEN]: ['Camisas', 'T-Shirts', 'Calças', 'Casacos', 'Ternos'],
@@ -33,14 +31,14 @@ export enum Condition {
   FAIR = 'Aceitável'
 }
 
-// Interface do Produto
 export interface Product {
   id: string;
   title: string;
   description: string;
   price: number;
   originalPrice?: number;
-  imageUrl: string;
+  imageUrl: string; // Imagem principal (Capa)
+  images?: string[]; // Array para até 5 fotos
   category: string;
   subcategory?: string;
   condition: string;
@@ -54,12 +52,10 @@ export interface Product {
   isPromoted?: boolean;
 }
 
-// Interface do Carrinho
 export interface CartItem extends Product {
   quantity: number;
 }
 
-// Interface do Perfil do Usuário
 export interface UserProfile {
   id: string;
   full_name: string;
@@ -69,11 +65,8 @@ export interface UserProfile {
   is_unlimited: boolean;
 }
 
-// --- AQUI ESTÁ O QUE FALTAVA (ViewState) ---
-// Define as telas possíveis para navegação no App
 export type ViewState = 'HOME' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'FAVORITES' | 'SELL' | 'ADMIN' | 'SETTINGS';
 
-// Interface de Comentários
 export interface Review {
   id: string;
   userName: string;
