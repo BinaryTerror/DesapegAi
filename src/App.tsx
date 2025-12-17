@@ -10,11 +10,12 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
-// Icons
+// --- CORREÇÃO AQUI: Adicionado 'Crown' aos imports ---
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock
+  MapPin, AlertTriangle, Image as ImageIcon, Lock, ChevronLeft, 
+  Globe, MessageCircle, Copy, X, Crown
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -32,93 +33,6 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debouncedValue;
 }
-
-// 🔐 HOOK DE SEGURANÇA (Backend Validation)
-function useAdminAuth() {
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setIsAdmin(false); setLoading(false); return; }
-
-        // Pergunta ao banco se é admin (Impossível de burlar)
-        const { data, error } = await supabase.rpc('am_i_admin');
-        if (error) throw error;
-        setIsAdmin(data || false);
-      } catch (err) {
-        console.error('Falha de segurança:', err);
-        setIsAdmin(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkAdminStatus();
-  }, []);
-
-  return { isAdmin, loading };
-}
-
-// 🔐 COMPONENTE GATE (Segurança Visual)
-const AdminGate = ({ children }: { children: React.ReactNode }) => {
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [inputKey, setInputKey] = useState('');
-  const [error, setError] = useState(false);
-  
-  // A chave secreta definida no .env ou fallback
-  const SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY;
-
-  if (isUnlocked) return <>{children}</>;
-
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputKey === SECRET_KEY) {
-      setIsUnlocked(true);
-      setError(false);
-    } else {
-      setError(true);
-      setInputKey('');
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="bg-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-md text-center border border-gray-700">
-        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-           <ShieldAlert size={32} className="text-red-500" />
-        </div>
-        <h2 className="text-2xl font-black text-white mb-2">Área Restrita</h2>
-        <p className="text-gray-400 text-sm mb-6">Confirmação de identidade necessária.</p>
-        <form onSubmit={handleUnlock} className="space-y-4">
-          <input type="password" placeholder="Senha Mestra..." value={inputKey} onChange={e => setInputKey(e.target.value)} className="w-full p-4 bg-gray-900 border border-gray-700 rounded-xl text-white text-center tracking-widest outline-none focus:border-red-500 transition-colors" autoFocus />
-          {error && <p className="text-red-500 text-xs font-bold animate-pulse">Senha Incorreta</p>}
-          <button className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><Unlock size={18} /> Acessar Painel</button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// 🔐 ROTA PROTEGIDA
-const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAdmin, loading } = useAdminAuth();
-
-  if (loading) return <div className="flex justify-center items-center h-screen bg-gray-900 text-white"><Loader2 className="animate-spin mr-2"/> Verificando credenciais...</div>;
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-slate-900 text-center px-4">
-         <ShieldAlert size={64} className="text-red-500 mb-4" />
-         <h1 className="text-3xl font-black text-gray-900 dark:text-white">Acesso Negado</h1>
-         <p className="text-gray-500 mt-2">O servidor recusou sua credencial de administrador.</p>
-      </div>
-    );
-  }
-
-  return <AdminGate>{children}</AdminGate>;
-};
 
 // --- COMPONENTES AUXILIARES ---
 const Footer = React.memo(({ onOpenAbout }: { onOpenAbout: () => void }) => (
@@ -169,6 +83,7 @@ function AppContent() {
   const [cart, setCart] = useState<CartItem[]>(() => { try { return JSON.parse(localStorage.getItem('desapegai_cart') || '[]'); } catch { return []; } });
   const [favorites, setFavorites] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem('desapegai_favorites') || '[]')); } catch { return new Set(); } });
   
+  // Produto Selecionado & Imagem Ativa
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
     try { return JSON.parse(localStorage.getItem('desapegai_selected_product') || 'null'); } catch { return null; }
   });
@@ -194,37 +109,67 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   
+  // Edição de Perfil
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
 
   // --- EFEITOS ---
 
-  useEffect(() => { if (selectedProduct) setActiveImage(selectedProduct.imageUrl); }, [selectedProduct?.id]);
+  // Atualiza imagem ativa quando produto muda
+  useEffect(() => {
+    if (selectedProduct) setActiveImage(selectedProduct.imageUrl);
+  }, [selectedProduct?.id]);
 
+  // Tema Dark/Light
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
     if (savedTheme === 'dark') setIsDarkMode(true);
   }, []);
 
   useEffect(() => {
-    if (isDarkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('desapegai_theme', 'dark'); } 
-    else { document.documentElement.classList.remove('dark'); localStorage.setItem('desapegai_theme', 'light'); }
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('desapegai_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('desapegai_theme', 'light');
+    }
   }, [isDarkMode]);
 
+  // Persistência
   useEffect(() => { localStorage.setItem('desapegai_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('desapegai_favorites', JSON.stringify(Array.from(favorites))); }, [favorites]);
+
+  // --- FETCHING DE DADOS ---
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.from('products').select('*').neq('status', 'sold').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('products')
+        .select(`
+          id, title, description, price, original_price, image_url, images, category, subcategory, condition, 
+          location, province, seller_name, seller_phone, seller_rating, likes, status, user_id, created_at
+        `)
+        .neq('status', 'sold')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
+      
       const formattedData = (data || []).map((p: any) => ({
-        ...p, originalPrice: p.original_price, imageUrl: p.image_url, sellerName: p.seller_name, sellerPhone: p.seller_phone, sellerId: p.user_id, createdAt: p.created_at
+        ...p,
+        originalPrice: p.original_price,
+        imageUrl: p.image_url,
+        sellerName: p.seller_name,
+        sellerPhone: p.seller_phone,
+        sellerId: p.user_id,
+        createdAt: p.created_at
       }));
+      
       setProducts(formattedData);
-    } catch (error: any) { console.error("Erro buscar produtos:", error.message); } finally { setIsLoading(false); }
+    } catch (error: any) { 
+      console.error("Erro buscar produtos:", error.message);
+    } finally { setIsLoading(false); }
   }, []);
 
   const handleUserLogin = useCallback(async (authUser: any) => {
@@ -234,7 +179,13 @@ function AppContent() {
       setUserProfile(data);
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
-      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id).neq('status', 'sold');
+      
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id)
+        .neq('status', 'sold');
+      
       setUserProductCount(count || 0);
     }
   }, []);
@@ -243,9 +194,16 @@ function AppContent() {
     const initializeApp = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) handleUserLogin(session.user);
+      
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
-        if (session?.user) handleUserLogin(session.user); else { setUser(null); setUserProfile(null); setUserProductCount(0); }
+        if (session?.user) handleUserLogin(session.user);
+        else { 
+          setUser(null); 
+          setUserProfile(null);
+          setUserProductCount(0);
+        }
       });
+
       fetchProducts();
       return () => subscription.unsubscribe();
     };
@@ -271,27 +229,43 @@ function AppContent() {
   const refreshUserProfile = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (data) { setUserProfile(data); showToast('Plano atualizado com sucesso!', 'success'); }
+    if (data) {
+      setUserProfile(data);
+      showToast('Plano atualizado com sucesso!', 'success');
+    }
   }, [user, showToast]);
 
+  // --- VERIFICAÇÃO DE BLOQUEIO DE VENDAS ---
   const canUserSell = useCallback(() => {
     if (!user) return false;
     if (userProfile?.role === 'admin') return true;
+
     const isVip = userProfile?.plan === 'vip' && new Date(userProfile.premium_until || '') > new Date();
     if (isVip) return true;
+
     const limit = userProfile?.posts_limit || 6;
     return userProductCount < limit;
   }, [user, userProfile, userProductCount]);
 
-  // --- HANDLERS ---
+  // --- ACTION HANDLERS ---
 
   const handleNavigate = useCallback((newView: ViewState | 'ADMIN') => {
     if (newView === 'SELL') { 
-      if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); return; }
-      if (canUserSell()) { setEditingProduct(null); setShowSellForm(true); } 
-      else { showToast(`Limite de ${userProfile?.posts_limit || 6} desapegos atingido!`, 'error'); setShowPlansModal(true); }
+      if (!user) { 
+        showToast('Login necessário', 'info'); 
+        setShowAuthModal(true); 
+        return;
+      } 
+      if (canUserSell()) {
+         setEditingProduct(null); 
+         setShowSellForm(true);
+      } else {
+         showToast(`Limite de ${userProfile?.posts_limit || 6} desapegos atingido!`, 'error');
+         setShowPlansModal(true); 
+      }
     } else if (newView === 'ADMIN') {
-      if (userProfile?.role === 'admin') navigate('/admin'); else showToast('Acesso negado', 'error');
+      if (userProfile?.role === 'admin') navigate('/admin');
+      else showToast('Acesso negado', 'error');
     } else {
       const map: Record<string, string> = { 'HOME': '/', 'CART': '/cart', 'PROFILE': '/profile', 'PRODUCT_DETAIL': '/product', 'FAVORITES': '/favorites' };
       if (map[newView]) navigate(map[newView]);
@@ -330,7 +304,8 @@ function AppContent() {
        title: productData.title, description: productData.description, price: productData.price,
        image_url: productData.imageUrl, images: productData.images, category: productData.category,
        subcategory: productData.subcategory, condition: productData.condition, location: productData.location,
-       province: productData.province, user_id: user.id, seller_name: productData.sellerName, seller_phone: productData.sellerPhone, status: 'available'
+       province: productData.province, // Salva Província
+       user_id: user.id, seller_name: productData.sellerName, seller_phone: productData.sellerPhone, status: 'available'
     };
     
     let error;
@@ -353,51 +328,83 @@ function AppContent() {
     }
   };
 
+  // Funções de Gerenciamento do Produto
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm("Apagar?")) return;
     const { error } = await supabase.from('products').delete().eq('id', productId);
-    if(!error) { setProducts(prev => prev.filter(p => p.id !== productId)); showToast('Apagado.', 'success'); }
+    if(!error) {
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        showToast('Apagado.', 'success');
+    }
   };
 
   const handleMarkAsSold = async (productId: string) => {
     if (!window.confirm("Confirmar venda?")) return;
     const { error } = await supabase.from('products').update({ status: 'sold' }).eq('id', productId);
-    if(!error) { setProducts(prev => prev.map(p => p.id === productId ? {...p, status: 'sold'} : p)); showToast('Vendido!', 'success'); }
+    if(!error) {
+        setProducts(prev => prev.map(p => p.id === productId ? {...p, status: 'sold'} : p));
+        showToast('Vendido!', 'success');
+    }
   };
 
+  // Funções de Perfil
   const handleUpdateName = async () => {
     if (!tempName.trim()) return showToast('Nome inválido', 'error');
     const { error } = await supabase.from('profiles').update({ full_name: tempName }).eq('id', user.id);
-    if (!error) { setUserProfile((prev: any) => prev ? { ...prev, full_name: tempName } : null); setIsEditingName(false); showToast('Nome atualizado!', 'success'); }
+    if (!error) {
+        setUserProfile((prev: any) => prev ? { ...prev, full_name: tempName } : null);
+        setIsEditingName(false);
+        showToast('Nome atualizado!', 'success');
+    }
   };
 
   const handleSavePhone = async () => {
     const phoneRegex = /^8\d{8}$/;
     if (!phoneRegex.test(tempPhone)) return showToast('Número inválido', 'error');
     const { error } = await supabase.from('profiles').update({ whatsapp: tempPhone }).eq('id', user.id);
-    if (!error) { setUserProfile((prev: any) => prev ? { ...prev, whatsapp: tempPhone } : null); setShowPhoneModal(false); showToast('Salvo!'); }
+    if (!error) {
+      setUserProfile((prev: any) => prev ? { ...prev, whatsapp: tempPhone } : null);
+      setShowPhoneModal(false);
+      showToast('Salvo!');
+    }
   };
 
+  // Lógica de Venda WhatsApp
   const handleWhatsAppCheckout = () => {
     const item = cart[0];
     if (!item) return;
-    const cleanedPhone = String(item.sellerPhone || '841234567').replace(/\D/g, '').replace(/^258/, '');
+    const sellerPhone = item.sellerPhone || '841234567';
+    const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
     const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAí. Ainda está disponível?`;
     window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setShowPaymentModal(false);
   };
 
+  const isBlocked = !userProfile?.plan && userProductCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin';
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
       <Navbar 
-        cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)} onNavigate={handleNavigate} currentView="HOME"
-        isDarkMode={isDarkMode} toggleDarkMode={() => setIsDarkMode(!isDarkMode)} onSearch={setSearch} 
-        user={user} userProfile={userProfile} userProductCount={userProductCount}
-        onOpenAuth={() => setShowAuthModal(true)} onOpenPlans={() => setShowPlansModal(true)}
+        cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)}
+        onNavigate={handleNavigate}
+        currentView="HOME"
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onSearch={setSearch} 
+        user={user}
+        userProfile={userProfile}
+        userProductCount={userProductCount}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenPlans={() => setShowPlansModal(true)}
       />
 
-      {toast && <div className="fixed top-24 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 font-bold animate-slide-up bg-green-500 text-white">{toast.msg}</div>}
+      {toast && (
+          <div className={`fixed top-24 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 font-bold animate-slide-up ${toast.type === 'success' ? 'bg-green-500 text-white' : toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+             {toast.msg}
+          </div>
+      )}
 
+      {/* MODAL TELEFONE */}
       {showPhoneModal && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative shadow-2xl">
@@ -409,24 +416,49 @@ function AppContent() {
         </div>
       )}
 
-      <button onClick={() => handleNavigate('SELL')} className={`fixed bottom-6 right-6 z-[90] px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold transition-transform hover:scale-105 active:scale-95 ${(!user || canUserSell()) ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-gray-500 text-gray-200 cursor-not-allowed shadow-gray-500/30'}`}>
-        {(!user || canUserSell()) ? <PlusCircle size={24} /> : <Lock size={24} />} <span>Vender</span>
+      {/* BOTÃO FLUTUANTE VENDER */}
+      <button 
+        onClick={() => handleNavigate('SELL')} 
+        className={`fixed bottom-6 right-6 z-[90] px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold transition-transform hover:scale-105 active:scale-95 ${
+          (!user || canUserSell()) 
+            ? 'bg-indigo-600 text-white shadow-indigo-500/30' 
+            : 'bg-gray-500 text-gray-200 cursor-not-allowed shadow-gray-500/30'
+        }`}
+      >
+        {(!user || canUserSell()) ? <PlusCircle size={24} /> : <Lock size={24} />}
+        <span>Vender</span>
       </button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600"/></div>}>
         <Routes>
+          
+          {/* --- HOME --- */}
           <Route path="/" element={
             <div className="pt-4">
-              <FilterBar activeCat={selectedCategory} activeProv={selectedProvince} onSelectCat={setSelectedCategory} onSelectProv={setSelectedProvince} />
+              <FilterBar 
+                 activeCat={selectedCategory} activeProv={selectedProvince} 
+                 onSelectCat={setSelectedCategory} onSelectProv={setSelectedProvince} 
+              />
               <div className="flex-1">
                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} {selectedProvince && <span className="text-indigo-600 text-lg ml-1">em {selectedProvince}</span>} <span className="text-gray-400 text-sm ml-2">({filteredProducts.length})</span></h2>
+                    <h2 className="text-2xl font-bold">
+                       {selectedCategory || 'Tudo'} 
+                       {selectedProvince && <span className="text-indigo-600 text-lg ml-1">em {selectedProvince}</span>}
+                       <span className="text-gray-400 text-sm ml-2">({filteredProducts.length})</span>
+                    </h2>
                  </div>
                  {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                       {filteredProducts.map(p => (
-                        <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} onClick={handleProductClick} isLiked={favorites.has(p.id)} onToggleLike={(prod) => handleToggleFavorite(prod.id)} currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} onDelete={handleDeleteProduct} onEdit={(prod) => { setEditingProduct(prod); setShowSellForm(true); }} userProfile={userProfile} />
+                        <ProductCard 
+                          key={p.id} product={p} 
+                          onAddToCart={handleAddToCart} onClick={handleProductClick} 
+                          isLiked={favorites.has(p.id)} onToggleLike={(prod) => handleToggleFavorite(prod.id)} 
+                          currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} 
+                          onDelete={handleDeleteProduct} onEdit={(prod) => { setEditingProduct(prod); setShowSellForm(true); }}
+                          userProfile={userProfile}
+                        />
                       ))}
                    </div>
                  }
@@ -434,6 +466,7 @@ function AppContent() {
             </div>
           } />
 
+          {/* --- CARRINHO --- */}
           <Route path="/cart" element={
             <div className="max-w-2xl mx-auto animate-fade-in">
                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors"><ChevronLeft size={20}/> Voltar</button>
@@ -460,6 +493,7 @@ function AppContent() {
             </div>
           } />
 
+          {/* --- DETALHE PRODUTO --- */}
           <Route path="/product" element={selectedProduct ? (
             <div className="max-w-4xl mx-auto animate-fade-in pb-20">
                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600"><ChevronLeft size={20}/> Voltar</button>
@@ -467,14 +501,18 @@ function AppContent() {
                   <div className="h-[400px] md:h-[500px] bg-gray-100 relative">
                      <img src={activeImage || selectedProduct.imageUrl} className="w-full h-full object-cover transition-opacity duration-300" alt={selectedProduct.title} decoding="async" />
                      <button onClick={() => handleToggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg hover:scale-110 transition-transform"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
+                     
                      {selectedProduct.images && selectedProduct.images.length > 1 && (
                        <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto p-1 scrollbar-hide">
                           {selectedProduct.images.map((img, idx) => (
-                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-indigo-500 scale-105' : 'border-white opacity-80'}`}><img src={img} className="w-full h-full object-cover" loading="lazy" /></button>
+                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-indigo-500 scale-105' : 'border-white opacity-80'}`}>
+                                <img src={img} className="w-full h-full object-cover" loading="lazy" />
+                             </button>
                           ))}
                        </div>
                      )}
                   </div>
+                  
                   <div className="p-6 md:p-8 flex flex-col">
                      <span className="text-indigo-600 font-bold text-xs uppercase mb-2 tracking-wide">{selectedProduct.category}</span>
                      <h1 className="text-2xl md:text-3xl font-black mb-2 leading-tight dark:text-white">{selectedProduct.title}</h1>
@@ -483,7 +521,10 @@ function AppContent() {
                      
                      <div className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl mb-6 flex items-center gap-3">
                         <img src={`https://ui-avatars.com/api/?name=${selectedProduct.sellerName}`} className="w-12 h-12 rounded-full" />
-                        <div><p className="font-bold text-sm dark:text-white">{selectedProduct.sellerName}</p><p className="text-xs text-gray-500">Vendedor</p></div>
+                        <div>
+                            <p className="font-bold text-sm dark:text-white">{selectedProduct.sellerName}</p>
+                            <p className="text-xs text-gray-500">Vendedor</p>
+                        </div>
                      </div>
 
                      <div className="text-gray-600 dark:text-gray-300 mb-8 prose dark:prose-invert text-sm md:text-base custom-scrollbar overflow-y-auto max-h-[200px]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
@@ -491,7 +532,9 @@ function AppContent() {
                      <div className="mt-auto space-y-3">
                        {(user?.id === selectedProduct.sellerId || userProfile?.role === 'admin') ? (
                           <div className="flex flex-col gap-2">
-                             {user?.id === selectedProduct.sellerId && <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">Editar Anúncio</button>}
+                             {user?.id === selectedProduct.sellerId && (
+                               <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">Editar Anúncio</button>
+                             )}
                              <button onClick={() => handleDeleteProduct(selectedProduct.id)} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors">Apagar Anúncio</button>
                           </div>
                        ) : (
@@ -507,6 +550,7 @@ function AppContent() {
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
+          {/* --- FAVORITOS --- */}
           <Route path="/favorites" element={
              <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
                 <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600"><ChevronLeft size={20}/> Voltar</button>
@@ -520,6 +564,7 @@ function AppContent() {
              </div>
           } />
 
+          {/* --- PERFIL --- */}
           <Route path="/profile" element={
             <div className="max-w-2xl mx-auto pb-20 animate-fade-in">
               <div className="text-center mb-10 bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-gray-100 dark:border-slate-700">
@@ -582,18 +627,32 @@ function AppContent() {
             </div>
           } />
 
-          <Route path="/admin" element={<ProtectedAdminRoute><AdminPanel /></ProtectedAdminRoute>} />
+          <Route path="/admin" element={userProfile?.role === 'admin' ? <AdminPanel /> : <div className="text-center py-20 text-red-500 font-bold"><AlertTriangle className="mx-auto mb-2" size={40}/>Acesso Restrito</div>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
         </Suspense>
       </main>
 
       <Footer onOpenAbout={() => setShowAboutModal(true)} />
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
-      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
-      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
-      {showPlansModal && user && <PlansModal onClose={() => setShowPlansModal(false)} userEmail={user.email} userId={user.id} onSuccess={refreshUserProfile} />}
       
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+      
+      {/* SELL FORM AGORA RECEBE userProfile CORRETAMENTE */}
+      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
+      
+      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+      
+      {/* MODAL DE PLANOS */}
+      {showPlansModal && user && (
+          <PlansModal 
+             onClose={() => setShowPlansModal(false)} 
+             userEmail={user.email} 
+             userId={user.id}
+             onSuccess={refreshUserProfile}
+          />
+      )}
+      
+      {/* MODAL DE PAGAMENTO WHATSAPP */}
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4 animate-fade-in">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
