@@ -12,7 +12,7 @@ import { Product, CartItem, UserProfile, Category, ViewState } from './types';
 // Imports de ícones
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Save, CheckCircle, 
-  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle, Image as ImageIcon
+  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle, Image as ImageIcon, Lock
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -125,6 +125,8 @@ function AppContent() {
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  
+  // ESTADO CRÍTICO: Contagem de produtos para bloquear venda
   const [userProductCount, setUserProductCount] = useState(0);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -169,7 +171,12 @@ function AppContent() {
 
   // --- HANDLERS ---
 
-  // CORREÇÃO: Função para atualizar perfil após compra de plano
+  const showToast = useCallback((msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Handler para atualizar perfil após compra de plano
   const refreshUserProfile = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -177,7 +184,7 @@ function AppContent() {
       setUserProfile(data);
       showToast('Plano atualizado com sucesso!', 'success');
     }
-  }, [user]);
+  }, [user, showToast]);
 
   const handleToggleFavorite = useCallback((productId: string) => {
     if (!user) {
@@ -192,6 +199,7 @@ function AppContent() {
     });
   }, [user]);
 
+  // Efeitos de inicialização e tema
   useEffect(() => {
     if (selectedProduct) {
       setActiveImage(selectedProduct.imageUrl);
@@ -253,7 +261,14 @@ function AppContent() {
       setUserProfile(data);
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
-      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', authUser.id);
+      
+      // Contar produtos para verificar limite
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id)
+        .neq('status', 'sold'); // Só conta produtos ativos/não vendidos
+        
       setUserProductCount(count || 0);
     }
   }, []);
@@ -277,11 +292,6 @@ function AppContent() {
     };
     initializeApp();
   }, [fetchProducts, handleUserLogin]);
-
-  const showToast = useCallback((msg: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -310,10 +320,41 @@ function AppContent() {
     navigate('/product');
   }, [navigate]);
 
+  // --- LÓGICA DE NEGÓCIO: Pode Vender? ---
+  const canUserSell = useCallback(() => {
+    if (!user) return false; // Não logado
+    if (userProfile?.role === 'admin') return true; // Admin sempre pode
+
+    // Verifica se VIP está ativo
+    const isVip = userProfile?.plan === 'vip' && new Date(userProfile.premium_until || '') > new Date();
+    if (isVip) return true; // VIP sempre pode
+
+    // Lógica Free: Contagem atual < Limite (padrão 6)
+    const limit = userProfile?.posts_limit || 6;
+    return userProductCount < limit;
+  }, [user, userProfile, userProductCount]);
+
+  // Navegação Segura com Bloqueio de Vendas
   const handleNavigate = useCallback((newView: ViewState | 'ADMIN') => {
     if (newView === 'SELL') { 
-      if (!user) { showToast('Login necessário', 'info'); setShowAuthModal(true); } 
-      else { setEditingProduct(null); setShowSellForm(true); }
+      // 1. Verifica se está logado
+      if (!user) { 
+        showToast('Login necessário', 'info'); 
+        setShowAuthModal(true); 
+        return;
+      } 
+
+      // 2. Lógica de Bloqueio (Money Logic)
+      if (canUserSell()) {
+         // Permitido: abre formulário
+         setEditingProduct(null); 
+         setShowSellForm(true);
+      } else {
+         // Bloqueado: abre modal de pagamento
+         showToast(`Limite de ${userProfile?.posts_limit || 6} desapegos atingido! Faça um upgrade.`, 'error');
+         setShowPlansModal(true); 
+      }
+
     } else if (newView === 'ADMIN') {
       if (userProfile?.role === 'admin') navigate('/admin');
       else showToast('Acesso negado', 'error');
@@ -321,7 +362,7 @@ function AppContent() {
       const map: Record<string, string> = { 'HOME': '/', 'CART': '/cart', 'PROFILE': '/profile', 'PRODUCT_DETAIL': '/product', 'FAVORITES': '/favorites' };
       if (map[newView]) navigate(map[newView]);
     }
-  }, [user, userProfile, navigate, showToast]);
+  }, [user, userProfile, canUserSell, navigate, showToast]);
 
   const handleSavePhone = async () => {
     const phoneRegex = /^8\d{8}$/;
@@ -424,12 +465,17 @@ function AppContent() {
         </div>
       )}
 
-      {/* CORREÇÃO: Botão Vender visível no PC (removeu lg:hidden e ajustou z-index) */}
+      {/* BOTÃO VENDER FLUTUANTE COM STATUS (Cadeado se bloqueado) */}
       <button 
         onClick={() => handleNavigate('SELL')} 
-        className="fixed bottom-6 right-6 z-[90] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30 active:scale-95 transition-transform hover:scale-105"
+        className={`fixed bottom-6 right-6 z-[90] px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold transition-transform hover:scale-105 active:scale-95 ${
+          (!user || canUserSell()) 
+            ? 'bg-indigo-600 text-white shadow-indigo-500/30' 
+            : 'bg-gray-500 text-gray-200 cursor-not-allowed shadow-gray-500/30'
+        }`}
       >
-        <PlusCircle size={24} /> <span>Vender</span>
+        {(!user || canUserSell()) ? <PlusCircle size={24} /> : <Lock size={24} />}
+        <span>Vender</span>
       </button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
@@ -589,7 +635,7 @@ function AppContent() {
       
       <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
       
-      {/* CORREÇÃO: Modal de Planos com Refresh do Usuário */}
+      {/* MODAL DE PLANOS: Passando refreshUserProfile para atualizar após pagamento */}
       {showPlansModal && user && (
           <PlansModal 
              onClose={() => setShowPlansModal(false)} 
