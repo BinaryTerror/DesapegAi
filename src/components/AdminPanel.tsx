@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { 
   Users, Package, Ban, Trash2, CheckCircle, 
-  Search, Shield, AlertTriangle, Loader2, CalendarPlus, Lock, Unlock, Crown
+  Loader2, Lock, Unlock, Crown, Plus, Calendar, Star, DollarSign
 } from 'lucide-react';
 import { UserProfile, Product } from '../types';
 
@@ -25,6 +25,7 @@ export const AdminPanel = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Buscar usuários
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
@@ -32,6 +33,7 @@ export const AdminPanel = () => {
 
       if (usersError) throw usersError;
 
+      // Buscar produtos
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
@@ -59,91 +61,76 @@ export const AdminPanel = () => {
     }
   };
 
-  // --- Helpers ---
-  
-  // Calcula dias restantes
-  const getDaysRemaining = (dateString: string | null) => {
-    if (!dateString) return 0;
-    const end = new Date(dateString);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
+  // --- LÓGICA DE NEGÓCIO (DINHEIRO) ---
+
+  // Opção 1: Adicionar +6 Posts (Mantém Free, aumenta limite)
+  const handleAddQuota = async (user: UserProfile) => {
+    if (!window.confirm(`Adicionar +6 anúncios ao limite de ${user.full_name}?`)) return;
+    
+    const currentLimit = user.posts_limit || 6;
+    const newLimit = currentLimit + 6;
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ posts_limit: newLimit })
+        .eq('id', user.id);
+        
+    if (!error) {
+        alert(`Sucesso! Limite do usuário agora é ${newLimit}.`);
+        fetchData();
+    } else {
+        alert("Erro. Verifique se a coluna 'posts_limit' existe no Supabase.");
+    }
   };
 
-  const handleAddPlan6Months = async (user: UserProfile) => {
-    if (!window.confirm(`Adicionar 6 meses de plano VIP para ${user.full_name}?`)) return;
+  // Opção 2 & 3: Adicionar VIP por Tempo (Ilimitado)
+  const handleAddVip = async (user: UserProfile, days: number, label: string) => {
+    if (!window.confirm(`Ativar VIP de ${label} para ${user.full_name}? (Anúncios Ilimitados)`)) return;
 
-    // Se já tem data futura, adiciona 6 meses nela. Se não, conta de hoje.
     const now = new Date();
+    // Se já for VIP e não expirou, soma ao tempo restante. Se não, começa de agora.
     let baseDate = now;
-    
     if (user.premium_until && new Date(user.premium_until) > now) {
         baseDate = new Date(user.premium_until);
     }
+    
+    const futureDate = new Date(baseDate);
+    futureDate.setDate(baseDate.getDate() + days); // Adiciona dias
 
-    const futureDate = new Date(baseDate.setMonth(baseDate.getMonth() + 6));
-    const isoDate = futureDate.toISOString();
+    const { error } = await supabase.from('profiles').update({ 
+        plan: 'vip', 
+        premium_until: futureDate.toISOString() 
+    }).eq('id', user.id);
 
-    try {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ 
-                plan: 'vip', 
-                premium_until: isoDate 
-            })
-            .eq('id', user.id);
-
-        if (error) throw error;
-
-        alert(`Sucesso! VIP estendido até ${futureDate.toLocaleDateString()}`);
-        fetchData(); 
-    } catch (err: any) {
-        alert("Erro ao atualizar plano.");
-        console.error(err);
+    if (!error) {
+        alert(`Sucesso! VIP ativo até ${futureDate.toLocaleDateString()}`);
+        fetchData();
+    } else {
+        alert("Erro ao atualizar VIP.");
     }
   };
 
   const handleToggleBlock = async (user: any) => {
     const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
-    const actionName = newStatus === 'blocked' ? 'BLOQUEAR' : 'DESBLOQUEAR';
+    const action = newStatus === 'blocked' ? 'BLOQUEAR' : 'DESBLOQUEAR';
     
-    if (!window.confirm(`Tem certeza que deseja ${actionName} o usuário ${user.full_name}?`)) return;
+    if(!window.confirm(`Deseja realmente ${action} este usuário?`)) return;
 
-    const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', user.id);
-
-    if (!error) {
-        setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u) as any);
-        setStats(prev => ({
-            ...prev,
-            blockedUsers: newStatus === 'blocked' ? prev.blockedUsers + 1 : prev.blockedUsers - 1
-        }));
-    } else {
-        alert("Erro ao alterar status.");
-    }
+    const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', user.id);
+    if (!error) fetchData();
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm("ATENÇÃO: Isso apagará o usuário e todos os seus produtos. Tem certeza?")) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (!error) {
-      setUsers(users.filter(u => u.id !== userId));
-      setStats(prev => ({...prev, totalUsers: prev.totalUsers - 1}));
-      alert("Usuário removido.");
-    } else {
-      alert("Erro ao remover usuário.");
+  const handleDeleteUser = async (id: string) => {
+    if (window.confirm("ATENÇÃO: Apagar usuário e todos os produtos?")) {
+        await supabase.from('profiles').delete().eq('id', id);
+        fetchData();
     }
   };
-
-  const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm("Apagar este desapego?")) return;
-    const { error } = await supabase.from('products').delete().eq('id', productId);
-    if (!error) {
-      setProducts(products.filter(p => p.id !== productId));
-      setStats(prev => ({...prev, totalProducts: prev.totalProducts - 1}));
+  
+  const handleDeleteProduct = async (id: string) => {
+    if (window.confirm("Apagar produto permanentemente?")) {
+        await supabase.from('products').delete().eq('id', id);
+        fetchData();
     }
   };
 
@@ -151,53 +138,62 @@ export const AdminPanel = () => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
   };
 
+  // Helper para verificar VIP na interface
+  const isVipActive = (user: UserProfile) => {
+    if (user.plan !== 'vip') return false;
+    if (!user.premium_until) return false;
+    return new Date(user.premium_until) > new Date();
+  };
+
   if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-indigo-600" size={48}/></div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white">Painel Administrativo</h1>
-          <p className="text-gray-500">Gestão do DesapegAí</p>
+          <p className="text-gray-500">Gestão Financeira e Conteúdo</p>
         </div>
         
         <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm">
-          <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Visão Geral</button>
-          <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'users' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Usuários ({stats.totalUsers})</button>
-          <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'products' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Desapegos ({stats.totalProducts})</button>
+          {['dashboard', 'users', 'products'].map(tab => (
+             <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab as any)} 
+                className={`px-4 py-2 capitalize rounded-lg text-sm font-bold transition-colors ${activeTab === tab ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+             >
+                {tab === 'dashboard' ? 'Visão Geral' : tab === 'users' ? `Usuários (${stats.totalUsers})` : `Desapegos (${stats.totalProducts})`}
+             </button>
+          ))}
         </div>
       </div>
 
+      {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl"><Users size={24} /></div></div>
-              <p className="text-gray-500 text-sm mb-1">Total de Usuários</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalUsers}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
+               <div className="flex items-center gap-3 text-blue-600 mb-2"><Users/> <span className="text-gray-500 text-sm font-normal">Usuários</span></div>
+               <h3 className="text-3xl font-black dark:text-white">{stats.totalUsers}</h3>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl"><Package size={24} /></div></div>
-              <p className="text-gray-500 text-sm mb-1">Total de Desapegos</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalProducts}</h3>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border-l-4 border-purple-500">
+               <div className="flex items-center gap-3 text-purple-600 mb-2"><Package/> <span className="text-gray-500 text-sm font-normal">Desapegos</span></div>
+               <h3 className="text-3xl font-black dark:text-white">{stats.totalProducts}</h3>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-xl"><CheckCircle size={24} /></div></div>
-              <p className="text-gray-500 text-sm mb-1">Itens Vendidos</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalSold}</h3>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border-l-4 border-green-500">
+               <div className="flex items-center gap-3 text-green-600 mb-2"><CheckCircle/> <span className="text-gray-500 text-sm font-normal">Vendidos</span></div>
+               <h3 className="text-3xl font-black dark:text-white">{stats.totalSold}</h3>
             </div>
-            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30">
-              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-red-100 dark:bg-red-800 text-red-600 dark:text-white rounded-xl"><Ban size={24} /></div></div>
-              <p className="text-red-600/70 dark:text-red-300 text-sm mb-1 font-bold">Bloqueados</p>
-              <h3 className="text-3xl font-black text-red-600 dark:text-white">{stats.blockedUsers}</h3>
+            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border-l-4 border-red-500">
+               <div className="flex items-center gap-3 text-red-600 mb-2"><Ban/> <span className="text-gray-500 text-sm font-normal dark:text-gray-300">Bloqueados</span></div>
+               <h3 className="text-3xl font-black text-red-600 dark:text-white">{stats.blockedUsers}</h3>
             </div>
         </div>
       )}
 
+      {/* USERS TAB (A MAIS IMPORTANTE) */}
       {activeTab === 'users' && (
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
-            <h3 className="text-xl font-bold flex items-center gap-2"><Users className="text-indigo-500"/> Gerenciar Usuários</h3>
-          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500">
@@ -205,73 +201,95 @@ export const AdminPanel = () => {
                   <th className="p-4">Usuário</th>
                   <th className="p-4">WhatsApp</th>
                   <th className="p-4">Status</th>
-                  <th className="p-4">Plano & Validade</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="p-4">Plano / Uso</th>
+                  <th className="p-4 text-center">Ações (Monetização)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {users.map((u: any) => {
-                  const daysLeft = getDaysRemaining(u.premium_until);
-                  const isVip = u.plan === 'vip' && daysLeft > 0;
+                  const vip = isVipActive(u);
+                  // Calcula quantos produtos ATIVOS o usuário tem
+                  const userAdsCount = products.filter(p => p.sellerId === u.id && p.status !== 'sold').length;
+                  const limit = u.posts_limit || 6;
+                  const limitReached = !vip && userAdsCount >= limit;
 
                   return (
                     <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 ${u.status === 'blocked' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name}`} className="w-10 h-10 rounded-full bg-gray-200" alt="" />
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white">{u.full_name || 'Sem nome'}</p>
-                            <p className="text-xs text-gray-400">{u.id.slice(0, 8)}...</p>
-                          </div>
+                            <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name}`} className="w-10 h-10 rounded-full bg-gray-200" alt="" />
+                            <div>
+                                <p className="font-bold text-gray-900 dark:text-white">{u.full_name}</p>
+                                <p className="text-xs text-gray-400">{u.id.slice(0,8)}</p>
+                            </div>
                         </div>
                       </td>
                       <td className="p-4 text-gray-600 dark:text-gray-300">{u.whatsapp || '-'}</td>
+                      
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'blocked' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                           {u.status === 'blocked' ? 'Bloqueado' : 'Ativo'}
                         </span>
                       </td>
                       
-                      {/* --- COLUNA PLANO MELHORADA --- */}
+                      {/* MOSTRADOR DE LIMITE */}
                       <td className="p-4">
-                        {isVip ? (
-                            <div className="flex flex-col items-start gap-1">
+                        {vip ? (
+                            <div className="flex flex-col items-start">
                                 <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold border border-amber-200">
-                                    <Crown size={12} className="fill-amber-500"/> VIP
+                                    <Crown size={12} className="fill-amber-500"/> VIP (Ilimitado)
                                 </span>
-                                <span className="text-[10px] text-gray-500 font-medium">
-                                    Expira em {new Date(u.premium_until).toLocaleDateString()}
-                                </span>
-                                <span className="text-[10px] text-green-600 font-bold">
-                                    (Restam {daysLeft} dias)
-                                </span>
+                                <span className="text-[10px] text-gray-500 mt-1">Expira: {new Date(u.premium_until).toLocaleDateString()}</span>
                             </div>
                         ) : (
-                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                Grátis
-                            </span>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-600 font-bold dark:text-gray-300">Free</span>
+                                    {limitReached && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded font-bold">Travado</span>}
+                                </div>
+                                <div className="text-xs mt-1 text-gray-500">
+                                    Uso: <span className={limitReached ? "text-red-600 font-bold" : "text-green-600 font-bold"}>{userAdsCount}</span> / {limit}
+                                </div>
+                            </div>
                         )}
                       </td>
 
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
+                            {/* BOTÃO 1: +6 ANUNCIOS */}
                             <button 
-                              onClick={() => handleAddPlan6Months(u)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-sm"
-                              title="Adicionar 6 meses de VIP"
+                                onClick={() => handleAddQuota(u)} 
+                                className="px-2 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition flex items-center gap-1" 
+                                title="Liberar +6 anúncios (Mantém plano Free)"
                             >
-                              <CalendarPlus size={14} /> +6
+                                <Plus size={14} /> <span className="text-xs font-bold">+6</span>
                             </button>
 
+                            {/* BOTÃO 2: VIP 7 Dias */}
                             <button 
-                              onClick={() => handleToggleBlock(u)}
-                              className={`p-2 rounded-lg text-xs font-bold transition-colors ${u.status === 'blocked' ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                              title={u.status === 'blocked' ? "Desbloquear" : "Bloquear"}
+                                onClick={() => handleAddVip(u, 7, "1 Semana")} 
+                                className="px-2 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 rounded-lg hover:bg-amber-100 transition flex items-center gap-1" 
+                                title="VIP Ilimitado por 7 dias"
                             >
-                              {u.status === 'blocked' ? <Unlock size={16}/> : <Lock size={16}/>}
+                                <Calendar size={14} /> <span className="text-xs font-bold">7D</span>
                             </button>
 
-                            <button onClick={() => handleDeleteUser(u.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100" title="Apagar"><Trash2 size={16}/></button>
+                            {/* BOTÃO 3: VIP 30 Dias */}
+                            <button 
+                                onClick={() => handleAddVip(u, 30, "1 Mês")} 
+                                className="px-2 py-1.5 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg hover:brightness-110 transition flex items-center gap-1 shadow-sm" 
+                                title="VIP Ilimitado por 30 dias"
+                            >
+                                <Star size={14} className="fill-white"/> <span className="text-xs font-bold">30D</span>
+                            </button>
+
+                            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                            {/* Bloquear / Apagar */}
+                            <button onClick={() => handleToggleBlock(u)} className={`p-1.5 rounded-lg ${u.status === 'blocked' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`} title={u.status === 'blocked' ? "Desbloquear" : "Bloquear"}>
+                                {u.status === 'blocked' ? <Unlock size={16}/> : <Lock size={16}/>}
+                            </button>
+                            <button onClick={() => handleDeleteUser(u.id)} className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100" title="Apagar Usuário"><Trash2 size={16}/></button>
                         </div>
                       </td>
                     </tr>
@@ -283,9 +301,9 @@ export const AdminPanel = () => {
         </div>
       )}
 
+      {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-700"><h3 className="text-xl font-bold flex items-center gap-2"><Package className="text-indigo-500"/> Todos os Desapegos</h3></div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500">
@@ -296,12 +314,12 @@ export const AdminPanel = () => {
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <img src={p.imageUrl} className="w-12 h-12 rounded-lg object-cover bg-gray-200" alt="" />
+                        <img src={p.imageUrl} className="w-10 h-10 rounded-lg object-cover bg-gray-200" alt="" />
                         <span className="font-bold text-gray-900 dark:text-white line-clamp-1">{p.title}</span>
                       </div>
                     </td>
                     <td className="p-4 font-bold text-indigo-600">{formatMoney(p.price)}</td>
-                    <td className="p-4 text-gray-600 dark:text-gray-300">{p.sellerName}<br/><span className="text-xs text-gray-400">{p.sellerPhone}</span></td>
+                    <td className="p-4 text-gray-600 dark:text-gray-300">{p.sellerName}</td>
                     <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.status === 'sold' ? 'Vendido' : 'Disponível'}</span></td>
                     <td className="p-4 text-right"><button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button></td>
                   </tr>
