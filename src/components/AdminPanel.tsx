@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { 
   Users, Package, Ban, Trash2, CheckCircle, 
-  Search, Shield, AlertTriangle, Loader2, CalendarPlus, Lock, Unlock
+  Search, Shield, AlertTriangle, Loader2, CalendarPlus, Lock, Unlock, Crown
 } from 'lucide-react';
 import { UserProfile, Product } from '../types';
 
@@ -12,7 +12,7 @@ export const AdminPanel = () => {
     totalUsers: 0,
     totalProducts: 0,
     totalSold: 0,
-    blockedUsers: 0 // Nova métrica
+    blockedUsers: 0
   });
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,7 +25,6 @@ export const AdminPanel = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Buscar Usuários
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
@@ -33,7 +32,6 @@ export const AdminPanel = () => {
 
       if (usersError) throw usersError;
 
-      // 2. Buscar Produtos
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
@@ -41,11 +39,7 @@ export const AdminPanel = () => {
 
       if (productsError) throw productsError;
 
-      // 3. Calcular Estatísticas
       const totalSold = (productsData || []).filter(p => p.status === 'sold').length;
-      
-      // Conta usuários onde status é 'blocked'
-      // Nota: Certifique-se de que sua tabela profiles tem uma coluna 'status' ou 'banned'
       const blockedUsers = (usersData || []).filter((u: any) => u.status === 'blocked').length;
 
       setStats({
@@ -65,13 +59,30 @@ export const AdminPanel = () => {
     }
   };
 
-  // --- AÇÃO: Adicionar 6 Meses de Plano ---
+  // --- Helpers ---
+  
+  // Calcula dias restantes
+  const getDaysRemaining = (dateString: string | null) => {
+    if (!dateString) return 0;
+    const end = new Date(dateString);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
   const handleAddPlan6Months = async (user: UserProfile) => {
     if (!window.confirm(`Adicionar 6 meses de plano VIP para ${user.full_name}?`)) return;
 
-    // Calcula a data atual + 6 meses
+    // Se já tem data futura, adiciona 6 meses nela. Se não, conta de hoje.
     const now = new Date();
-    const futureDate = new Date(now.setMonth(now.getMonth() + 6));
+    let baseDate = now;
+    
+    if (user.premium_until && new Date(user.premium_until) > now) {
+        baseDate = new Date(user.premium_until);
+    }
+
+    const futureDate = new Date(baseDate.setMonth(baseDate.getMonth() + 6));
     const isoDate = futureDate.toISOString();
 
     try {
@@ -79,21 +90,20 @@ export const AdminPanel = () => {
             .from('profiles')
             .update({ 
                 plan: 'vip', 
-                premium_until: isoDate // Certifique-se de ter essa coluna no Supabase
+                premium_until: isoDate 
             })
             .eq('id', user.id);
 
         if (error) throw error;
 
-        alert(`Sucesso! ${user.full_name} agora é VIP até ${futureDate.toLocaleDateString()}`);
-        fetchData(); // Recarrega os dados
+        alert(`Sucesso! VIP estendido até ${futureDate.toLocaleDateString()}`);
+        fetchData(); 
     } catch (err: any) {
-        alert("Erro ao atualizar plano. Verifique se a coluna 'premium_until' existe na tabela profiles.");
+        alert("Erro ao atualizar plano.");
         console.error(err);
     }
   };
 
-  // --- AÇÃO: Bloquear/Desbloquear Usuário ---
   const handleToggleBlock = async (user: any) => {
     const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
     const actionName = newStatus === 'blocked' ? 'BLOQUEAR' : 'DESBLOQUEAR';
@@ -107,7 +117,6 @@ export const AdminPanel = () => {
 
     if (!error) {
         setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u) as any);
-        // Atualiza a contagem localmente para não precisar recarregar tudo
         setStats(prev => ({
             ...prev,
             blockedUsers: newStatus === 'blocked' ? prev.blockedUsers + 1 : prev.blockedUsers - 1
@@ -153,79 +162,37 @@ export const AdminPanel = () => {
         </div>
         
         <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-          >
-            Visão Geral
-          </button>
-          <button 
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'users' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-          >
-            Usuários ({stats.totalUsers})
-          </button>
-          <button 
-            onClick={() => setActiveTab('products')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'products' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-          >
-            Desapegos ({stats.totalProducts})
-          </button>
+          <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Visão Geral</button>
+          <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'users' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Usuários ({stats.totalUsers})</button>
+          <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'products' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>Desapegos ({stats.totalProducts})</button>
         </div>
       </div>
 
-      {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            {/* Card Usuários */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl">
-                  <Users size={24} />
-                </div>
-              </div>
+              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl"><Users size={24} /></div></div>
               <p className="text-gray-500 text-sm mb-1">Total de Usuários</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalUsers}</h3>
             </div>
-
-            {/* Card Desapegos */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl">
-                  <Package size={24} />
-                </div>
-              </div>
+              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl"><Package size={24} /></div></div>
               <p className="text-gray-500 text-sm mb-1">Total de Desapegos</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalProducts}</h3>
             </div>
-
-            {/* Card Vendidos */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-xl">
-                  <CheckCircle size={24} />
-                </div>
-              </div>
+              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-xl"><CheckCircle size={24} /></div></div>
               <p className="text-gray-500 text-sm mb-1">Itens Vendidos</p>
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalSold}</h3>
             </div>
-
-            {/* Card BLOQUEADOS (NOVO EM VERMELHO) */}
             <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-red-100 dark:bg-red-800 text-red-600 dark:text-white rounded-xl">
-                  <Ban size={24} />
-                </div>
-              </div>
+              <div className="flex items-center justify-between mb-4"><div className="p-3 bg-red-100 dark:bg-red-800 text-red-600 dark:text-white rounded-xl"><Ban size={24} /></div></div>
               <p className="text-red-600/70 dark:text-red-300 text-sm mb-1 font-bold">Bloqueados</p>
               <h3 className="text-3xl font-black text-red-600 dark:text-white">{stats.blockedUsers}</h3>
             </div>
-          </div>
-        </>
+        </div>
       )}
 
-      {/* USERS TAB */}
       {activeTab === 'users' && (
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
@@ -238,86 +205,91 @@ export const AdminPanel = () => {
                   <th className="p-4">Usuário</th>
                   <th className="p-4">WhatsApp</th>
                   <th className="p-4">Status</th>
-                  <th className="p-4">Plano</th>
+                  <th className="p-4">Plano & Validade</th>
                   <th className="p-4 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {users.map((u: any) => (
-                  <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 ${u.status === 'blocked' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name}`} className="w-10 h-10 rounded-full bg-gray-200" alt="" />
-                        <div>
-                          <p className="font-bold text-gray-900 dark:text-white">{u.full_name || 'Sem nome'}</p>
-                          <p className="text-xs text-gray-400">{u.id.slice(0, 8)}...</p>
+                {users.map((u: any) => {
+                  const daysLeft = getDaysRemaining(u.premium_until);
+                  const isVip = u.plan === 'vip' && daysLeft > 0;
+
+                  return (
+                    <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 ${u.status === 'blocked' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name}`} className="w-10 h-10 rounded-full bg-gray-200" alt="" />
+                          <div>
+                            <p className="font-bold text-gray-900 dark:text-white">{u.full_name || 'Sem nome'}</p>
+                            <p className="text-xs text-gray-400">{u.id.slice(0, 8)}...</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-gray-600 dark:text-gray-300">{u.whatsapp || '-'}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'blocked' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        {u.status === 'blocked' ? 'Bloqueado' : 'Ativo'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                        <span className="text-xs font-medium text-gray-500">
-                            {u.plan === 'vip' ? 'VIP' : 'Grátis'}
+                      </td>
+                      <td className="p-4 text-gray-600 dark:text-gray-300">{u.whatsapp || '-'}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'blocked' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                          {u.status === 'blocked' ? 'Bloqueado' : 'Ativo'}
                         </span>
-                    </td>
-                    <td className="p-4">
-                       <div className="flex items-center justify-center gap-2">
-                           {/* BOTÃO +6 MESES (NOVO) */}
-                           <button 
-                             onClick={() => handleAddPlan6Months(u)}
-                             className="px-3 py-1.5 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-sm"
-                             title="Adicionar 6 meses de VIP"
-                           >
-                             <CalendarPlus size={14} /> +6
-                           </button>
+                      </td>
+                      
+                      {/* --- COLUNA PLANO MELHORADA --- */}
+                      <td className="p-4">
+                        {isVip ? (
+                            <div className="flex flex-col items-start gap-1">
+                                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-bold border border-amber-200">
+                                    <Crown size={12} className="fill-amber-500"/> VIP
+                                </span>
+                                <span className="text-[10px] text-gray-500 font-medium">
+                                    Expira em {new Date(u.premium_until).toLocaleDateString()}
+                                </span>
+                                <span className="text-[10px] text-green-600 font-bold">
+                                    (Restam {daysLeft} dias)
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                Grátis
+                            </span>
+                        )}
+                      </td>
 
-                           {/* BOTÃO BLOQUEAR/DESBLOQUEAR */}
-                           <button 
-                             onClick={() => handleToggleBlock(u)}
-                             className={`p-2 rounded-lg text-xs font-bold transition-colors ${u.status === 'blocked' ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                             title={u.status === 'blocked' ? "Desbloquear" : "Bloquear"}
-                           >
-                             {u.status === 'blocked' ? <Unlock size={16}/> : <Lock size={16}/>}
-                           </button>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => handleAddPlan6Months(u)}
+                              className="px-3 py-1.5 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-sm"
+                              title="Adicionar 6 meses de VIP"
+                            >
+                              <CalendarPlus size={14} /> +6
+                            </button>
 
-                           <button 
-                             onClick={() => handleDeleteUser(u.id)} 
-                             className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"
-                             title="Apagar Usuário"
-                           >
-                             <Trash2 size={16}/>
-                           </button>
-                       </div>
-                    </td>
-                  </tr>
-                ))}
+                            <button 
+                              onClick={() => handleToggleBlock(u)}
+                              className={`p-2 rounded-lg text-xs font-bold transition-colors ${u.status === 'blocked' ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                              title={u.status === 'blocked' ? "Desbloquear" : "Bloquear"}
+                            >
+                              {u.status === 'blocked' ? <Unlock size={16}/> : <Lock size={16}/>}
+                            </button>
+
+                            <button onClick={() => handleDeleteUser(u.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100" title="Apagar"><Trash2 size={16}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* PRODUCTS TAB */}
       {activeTab === 'products' && (
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 dark:border-slate-700">
-            <h3 className="text-xl font-bold flex items-center gap-2"><Package className="text-indigo-500"/> Todos os Desapegos</h3>
-          </div>
+          <div className="p-6 border-b border-gray-100 dark:border-slate-700"><h3 className="text-xl font-bold flex items-center gap-2"><Package className="text-indigo-500"/> Todos os Desapegos</h3></div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 dark:bg-slate-900/50 text-gray-500">
-                <tr>
-                  <th className="p-4">Produto</th>
-                  <th className="p-4">Preço</th>
-                  <th className="p-4">Vendedor</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Ações</th>
-                </tr>
+                <tr><th className="p-4">Produto</th><th className="p-4">Preço</th><th className="p-4">Vendedor</th><th className="p-4">Status</th><th className="p-4 text-right">Ações</th></tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {products.map(p => (
@@ -329,18 +301,9 @@ export const AdminPanel = () => {
                       </div>
                     </td>
                     <td className="p-4 font-bold text-indigo-600">{formatMoney(p.price)}</td>
-                    <td className="p-4 text-gray-600 dark:text-gray-300">
-                        {p.sellerName} <br/>
-                        <span className="text-xs text-gray-400">{p.sellerPhone}</span>
-                    </td>
-                    <td className="p-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                            {p.status === 'sold' ? 'Vendido' : 'Disponível'}
-                        </span>
-                    </td>
-                    <td className="p-4 text-right">
-                       <button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button>
-                    </td>
+                    <td className="p-4 text-gray-600 dark:text-gray-300">{p.sellerName}<br/><span className="text-xs text-gray-400">{p.sellerPhone}</span></td>
+                    <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-bold ${p.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{p.status === 'sold' ? 'Vendido' : 'Disponível'}</span></td>
+                    <td className="p-4 text-right"><button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button></td>
                   </tr>
                 ))}
               </tbody>
