@@ -68,7 +68,7 @@ const AdminGate = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState(false);
   
   // A chave secreta definida no .env ou fallback
-  const SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY || "admin123";
+  const SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY;
 
   if (isUnlocked) return <>{children}</>;
 
