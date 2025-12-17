@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Heart, Trash2, CheckCircle, Edit } from 'lucide-react';
+import { ShoppingBag, Heart, Trash2, CheckCircle, Edit, Image as ImageIcon } from 'lucide-react';
 import { Product, UserProfile } from '../types';
 import DOMPurify from 'dompurify';
 
@@ -10,20 +10,21 @@ interface ProductCardProps {
   isLiked?: boolean;
   onToggleLike?: (product: Product) => void;
   currentUserId?: string;
-  userProfile?: UserProfile | null; // Adicionado para verificar Admin
+  userProfile?: UserProfile | null;
   onMarkAsSold?: (productId: string) => void;
   onDelete?: (productId: string) => void;
   onEdit?: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ 
+// OTIMIZAÇÃO: React.memo para evitar re-render se as props não mudarem
+const ProductCard: React.FC<ProductCardProps> = React.memo(({ 
   product, 
   onAddToCart, 
   onClick, 
   isLiked, 
   onToggleLike, 
   currentUserId, 
-  userProfile, // Recebe o perfil
+  userProfile, 
   onMarkAsSold, 
   onDelete, 
   onEdit 
@@ -39,10 +40,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const formattedDate = new Date(product.createdAt).toLocaleDateString('pt-MZ');
   
-  // VERIFICA SE PODE EDITAR/APAGAR: É o dono OU é Admin
+  // Lógica de Permissão
   const isOwner = currentUserId === product.sellerId;
   const isAdmin = userProfile?.role === 'admin';
   const canManage = isOwner || isAdmin;
+
+  // CORREÇÃO: Lógica do Badge +X Fotos
+  const extraImagesCount = product.images && product.images.length > 1 ? product.images.length - 1 : 0;
 
   return (
     <div 
@@ -54,11 +58,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
           alt={product.title} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           loading="lazy"
+          decoding="async"
         />
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5">
+        {/* Badges Superiores */}
+        <div className="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1.5 z-10">
             {discount > 0 && (
             <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
                 -{discount}%
@@ -66,9 +72,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
         </div>
 
+        {/* CORREÇÃO: Badge de Fotos Extras */}
+        {extraImagesCount > 0 && (
+          <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 z-10 pointer-events-none">
+            <ImageIcon size={10} />
+            +{extraImagesCount}
+          </div>
+        )}
+
         {product.status === 'sold' && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-            <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">VENDIDO</span>
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-20">
+            <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-12 border-2 border-white">VENDIDO</span>
           </div>
         )}
 
@@ -112,26 +126,26 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-slate-700/50 mt-1">
            <div className="flex items-center gap-1.5">
              <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-200 dark:bg-slate-600 overflow-hidden ring-1 ring-white dark:ring-slate-700">
-                <img src={`https://ui-avatars.com/api/?name=${product.sellerName || 'User'}&background=random`} alt="" className="w-full h-full object-cover" />
+                <img src={`https://ui-avatars.com/api/?name=${product.sellerName || 'User'}&background=random`} alt="" className="w-full h-full object-cover" loading="lazy" />
              </div>
              <span className="text-[10px] md:text-[11px] text-gray-500 dark:text-slate-400 font-medium truncate max-w-[60px] md:max-w-[80px]">{product.sellerName || 'Vendedor'}</span>
            </div>
 
            {/* Botões de Ação */}
            {canManage ? (
-             <div className="flex gap-1">
+             <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                 {product.status !== 'sold' && onMarkAsSold && isOwner && (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onMarkAsSold(product.id); }}
+                    onClick={() => onMarkAsSold(product.id)}
                     className="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-lg text-xs font-bold hover:bg-green-200"
-                    title="Vendido"
+                    title="Marcar como Vendido"
                   >
                     <CheckCircle size={14} />
                   </button>
                 )}
                 {onEdit && isOwner && (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                    onClick={() => onEdit(product)}
                     className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-200"
                     title="Editar"
                   >
@@ -140,7 +154,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 )}
                 {onDelete && (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                    onClick={() => onDelete(product.id)}
                     className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg text-xs font-bold hover:bg-red-200"
                     title="Apagar"
                   >
@@ -164,6 +178,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default ProductCard;
