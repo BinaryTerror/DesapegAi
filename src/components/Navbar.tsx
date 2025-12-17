@@ -56,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({
               D
             </div>
             <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white hidden md:block">
-              Desapeg<span className="text-indigo-600">Ai</span>
+              Desapeg<span className="text-indigo-600">Aí</span>
             </span>
           </div>
         </div>
