@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, Sun, Moon, LogIn, User, LogOut, ShieldAlert, CreditCard, Menu, X, Crown, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, Search, Sun, Moon, LogIn, User, LogOut, ShieldAlert, CreditCard, Menu, X, Crown } from 'lucide-react';
 import { ViewState, UserProfile } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
@@ -12,7 +12,7 @@ interface NavbarProps {
   onSearch: (term: string) => void;
   user: any | null; 
   userProfile: UserProfile | null;
-  userProductCount: number; // NOVO: Recebe a contagem
+  userProductCount: number; // Agora aceita a contagem sem erro
   onOpenAuth: () => void;
   onOpenPlans: () => void;
 }
@@ -31,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({
   onOpenPlans
 }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Para o menu hamburguer
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -40,13 +40,15 @@ const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isAdmin = userProfile?.role === 'admin';
-  // Verifica se é VIP com data válida
+  
+  // Verifica VIP e Limites
   const isVip = userProfile?.plan === 'vip' && new Date(userProfile.premium_until || '') > new Date();
   const limit = userProfile?.posts_limit || 6;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md z-[50] border-b border-gray-100 dark:border-slate-800 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-2 md:gap-4">
+    <>
+    <nav className="fixed top-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-[50] border-b border-gray-100 dark:border-slate-800 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-2 md:gap-4">
         
         {/* ESQUERDA: Logo */}
         <div 
@@ -61,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
-        {/* CENTRO: Barra de Busca (Desktop) */}
+        {/* CENTRO: Barra de Busca (Apenas Desktop) */}
         <div className="flex-1 max-w-md hidden lg:block">
           <div className="relative group">
             <input 
@@ -77,7 +79,7 @@ const Navbar: React.FC<NavbarProps> = ({
         {/* DIREITA: Ações */}
         <div className="flex items-center gap-2 md:gap-3">
           
-          {/* BOTÃO DE CRÉDITOS NO TOPO (Se logado) */}
+          {/* BOTÃO DE CRÉDITOS (Desktop) */}
           {user && (
              <button 
                onClick={onOpenPlans}
@@ -118,7 +120,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   className="w-8 h-8 rounded-full bg-gray-200 object-cover"
                 />
                 <div className="text-left">
-                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 max-w-[80px] truncate">{userProfile?.full_name?.split(' ')[0] || 'User'}</p>
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 max-w-[80px] truncate">{userProfile?.full_name?.split(' ')[0]}</p>
                     {isVip && <p className="text-[9px] text-orange-500 font-bold leading-none">VIP</p>}
                 </div>
               </button>
@@ -127,7 +129,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <>
                   <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsProfileOpen(false)} />
                   <div className="absolute right-0 top-12 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden py-2 animate-fade-in z-50">
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
                        <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Logado como</p>
                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{user.email}</p>
                     </div>
@@ -141,13 +143,13 @@ const Navbar: React.FC<NavbarProps> = ({
                     <button onClick={() => { onNavigate('PROFILE'); setIsProfileOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
                       <User size={16} /> Meu Perfil
                     </button>
-                    
+
                     <button onClick={() => { onOpenPlans(); setIsProfileOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                      <CreditCard size={16} /> Meus Planos
+                      <CreditCard size={16} /> Planos
                     </button>
 
-                    <button onClick={handleLogout} className="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-sm font-medium text-red-500 flex items-center gap-2 border-t border-gray-100 dark:border-slate-700 mt-1">
-                      <LogOut size={16} /> Sair da conta
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/10 text-sm font-medium text-red-500 flex items-center gap-2 border-t border-gray-100 dark:border-slate-700">
+                      <LogOut size={16} /> Sair
                     </button>
                   </div>
                 </>
@@ -166,55 +168,65 @@ const Navbar: React.FC<NavbarProps> = ({
           {/* MENU MOBILE TOGGLE */}
           <button 
              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-             className="md:hidden p-2 text-gray-600 dark:text-gray-300"
+             className="lg:hidden p-2 text-gray-600 dark:text-gray-300"
           >
              {isMobileMenuOpen ? <X/> : <Menu/>}
           </button>
         </div>
       </div>
 
-      {/* MENU MOBILE EXPANDIDO */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-20 left-0 w-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 p-4 shadow-xl animate-slide-down z-40">
-           {/* Busca */}
-           <div className="relative mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Buscar produtos..." 
-                onChange={(e) => onSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm dark:text-white outline-none"
-              />
-           </div>
-
-           <div className="grid grid-cols-2 gap-3">
-              {user ? (
-                <>
-                   <button onClick={() => { onNavigate('PROFILE'); setIsMobileMenuOpen(false); }} className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl flex flex-col items-center gap-2 font-bold dark:text-white border dark:border-slate-700">
-                      <User className="text-indigo-600"/> Perfil
-                   </button>
-                   <button onClick={() => { onOpenPlans(); setIsMobileMenuOpen(false); }} className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl flex flex-col items-center gap-2 font-bold dark:text-white border dark:border-slate-700 relative overflow-hidden">
-                      {isVip && <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] px-2 py-0.5 rounded-bl-lg">VIP</div>}
-                      <CreditCard className="text-orange-500"/> Planos
-                   </button>
-                   {isAdmin && (
-                     <button onClick={() => { onNavigate('ADMIN'); setIsMobileMenuOpen(false); }} className="col-span-2 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl flex items-center justify-center gap-2 font-bold text-purple-600 border border-purple-100 dark:border-purple-800">
-                        <ShieldAlert/> Painel Admin
-                     </button>
-                   )}
-                   <button onClick={handleLogout} className="col-span-2 py-4 text-red-500 font-bold flex justify-center items-center gap-2 border-t dark:border-slate-800 mt-2">
-                      <LogOut size={18}/> Sair
-                   </button>
-                </>
-              ) : (
-                <button onClick={() => { onOpenAuth(); setIsMobileMenuOpen(false); }} className="col-span-2 bg-black dark:bg-white text-white dark:text-black p-4 rounded-xl font-bold flex justify-center items-center gap-2">
-                   <LogIn/> Fazer Login
-                </button>
-              )}
-           </div>
-        </div>
-      )}
+      {/* --- BARRA DE BUSCA MOBILE FIXA --- */}
+      <div className={`lg:hidden px-4 pb-3 bg-white/90 dark:bg-slate-900/90 border-b border-gray-100 dark:border-slate-800 ${isMobileMenuOpen ? 'hidden' : 'block'}`}>
+         <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Buscar produtos..." 
+              onChange={(e) => onSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-gray-100 dark:bg-slate-800 rounded-xl text-sm dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+         </div>
+      </div>
     </nav>
+
+    {/* MENU MOBILE EXPANDIDO (FULLSCREEN) */}
+    {isMobileMenuOpen && (
+      <div className="fixed inset-0 z-40 bg-white dark:bg-slate-900 pt-24 px-4 animate-fade-in lg:hidden overflow-y-auto">
+         {user ? (
+            <div className="flex items-center gap-3 mb-6 p-4 bg-gray-50 dark:bg-slate-800 rounded-2xl border dark:border-slate-700">
+               <img src={userProfile?.avatar_url || `https://ui-avatars.com/api/?name=${userProfile?.full_name}`} className="w-12 h-12 rounded-full bg-gray-200 object-cover"/>
+               <div>
+                  <p className="font-bold text-lg dark:text-white">{userProfile?.full_name}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                  {isVip && <span className="text-xs font-bold text-orange-500">Membro VIP</span>}
+               </div>
+            </div>
+         ) : (
+            <div className="mb-6 p-6 bg-gray-50 dark:bg-slate-800 rounded-2xl text-center border dark:border-slate-700">
+               <p className="mb-4 text-gray-500">Entre para anunciar e comprar</p>
+               <button onClick={() => {onOpenAuth(); setIsMobileMenuOpen(false)}} className="w-full bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold flex justify-center gap-2"><LogIn/> Entrar na conta</button>
+            </div>
+         )}
+
+         <div className="grid grid-cols-2 gap-3">
+             <button onClick={() => { onNavigate('HOME'); setIsMobileMenuOpen(false); }} className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl font-bold dark:text-white border dark:border-slate-700">🏠 Início</button>
+             {user && <button onClick={() => { onNavigate('PROFILE'); setIsMobileMenuOpen(false); }} className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl font-bold dark:text-white border dark:border-slate-700">👤 Perfil</button>}
+             {user && <button onClick={() => { onOpenPlans(); setIsMobileMenuOpen(false); }} className="p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-600 font-bold rounded-xl border border-orange-100 dark:border-orange-800 relative overflow-hidden">
+                <div className="flex flex-col items-center">
+                   <CreditCard size={24} className="mb-1"/>
+                   <span>Planos</span>
+                   <span className="text-[10px] opacity-80">{isVip ? 'VIP Ativo' : `${userProductCount}/${limit} Usados`}</span>
+                </div>
+             </button>}
+             {isAdmin && <button onClick={() => { onNavigate('ADMIN'); setIsMobileMenuOpen(false); }} className="p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-600 font-bold rounded-xl border border-purple-100">🛡️ Admin</button>}
+         </div>
+
+         {user && (
+            <button onClick={handleLogout} className="w-full mt-6 py-4 text-red-500 font-bold border-t dark:border-slate-800 flex justify-center gap-2"><LogOut/> Sair</button>
+         )}
+      </div>
+    )}
+    </>
   );
 };
 
