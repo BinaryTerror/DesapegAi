@@ -33,7 +33,7 @@ const Footer = ({ onOpenAbout }: { onOpenAbout: () => void }) => (
         <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="font-bold text-indigo-600 hover:underline">Otseven</a>
       </div>
       <div className="flex gap-6">
-        <span>© 2025 DesapegAi</span>
+        <span>© 2025 DesapegAí</span>
         <button onClick={onOpenAbout} className="hover:text-indigo-600 transition-colors font-medium hover:underline">Sobre nós</button>
       </div>
     </div>
@@ -65,7 +65,7 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver Portfolio</a>
           </div>
         </div>
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAi Team</p></div>
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAíTeam</p></div>
       </div>
     </div>
   );
@@ -417,7 +417,7 @@ function AppContent() {
     if (!item) return;
     const sellerPhone = item.sellerPhone || '841234567';
     const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
-    const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAi. Ainda está disponível?`;
+    const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAí. Ainda está disponível?`;
     window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setCart([]); 
     setShowPaymentModal(false);
@@ -436,7 +436,7 @@ function AppContent() {
     if (!selectedProduct) return;
     const shareData = {
       title: `DesapegAi: ${selectedProduct.title}`,
-      text: `Olha este produto no DesapegAi: ${selectedProduct.title} por ${formatMoney(selectedProduct.price)}!`,
+      text: `Olha este produto no DesapegAí: ${selectedProduct.title} por ${formatMoney(selectedProduct.price)}!`,
       url: window.location.href
     };
     try {
