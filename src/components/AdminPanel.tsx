@@ -65,24 +65,39 @@ export const AdminPanel = () => {
 
   // Opção 1: Adicionar +6 Posts (Mantém Free, aumenta limite)
   const handleAddQuota = async (user: UserProfile) => {
-    if (!window.confirm(`Adicionar +6 anúncios ao limite de ${user.full_name}?`)) return;
+    if (!window.confirm(`Adicionar +6 anúncios para ${user.full_name}?`)) return;
     
-    const currentLimit = user.posts_limit || 6;
+    // 1. Busca o valor ATUAL no banco para não ter erro de soma
+    const { data: currentUser, error: fetchError } = await supabase
+        .from('profiles')
+        .select('posts_limit')
+        .eq('id', user.id)
+        .single();
+
+    if (fetchError) {
+        alert("Erro ao buscar dados atuais do usuário.");
+        console.error(fetchError);
+        return;
+    }
+
+    // 2. Soma +6
+    const currentLimit = currentUser?.posts_limit || 6;
     const newLimit = currentLimit + 6;
 
-    const { error } = await supabase
+    // 3. Salva no banco (nome da coluna: posts_limit)
+    const { error: updateError } = await supabase
         .from('profiles')
         .update({ posts_limit: newLimit })
         .eq('id', user.id);
         
-    if (!error) {
-        alert(`Sucesso! Limite do usuário agora é ${newLimit}.`);
-        fetchData();
+    if (!updateError) {
+        alert(`Sucesso! Limite aumentou de ${currentLimit} para ${newLimit}.`);
+        fetchData(); // Atualiza a tabela na tela
     } else {
-        alert("Erro. Verifique se a coluna 'posts_limit' existe no Supabase.");
+        alert("Erro ao salvar no banco. Abra o console (F12) para ver.");
+        console.error("Erro Supabase:", updateError);
     }
   };
-
   // Opção 2 & 3: Adicionar VIP por Tempo (Ilimitado)
   const handleAddVip = async (user: UserProfile, days: number, label: string) => {
     if (!window.confirm(`Ativar VIP de ${label} para ${user.full_name}? (Anúncios Ilimitados)`)) return;
