@@ -9,10 +9,10 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, Category, ViewState } from './types';
 
-// Imports de ícones (Removido 'Star')
+// Imports de ícones
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Save, CheckCircle, 
-  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle
+  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle, Image as ImageIcon
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -166,10 +166,18 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPlansModal, setShowPlansModal] = useState(false);
-  
-  // REMOVIDO: Estados de Review (reviews, newRating)
 
   // --- HANDLERS ---
+
+  // CORREÇÃO: Função para atualizar perfil após compra de plano
+  const refreshUserProfile = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (data) {
+      setUserProfile(data);
+      showToast('Plano atualizado com sucesso!', 'success');
+    }
+  }, [user]);
 
   const handleToggleFavorite = useCallback((productId: string) => {
     if (!user) {
@@ -296,7 +304,6 @@ function AppContent() {
 
   const handleRemoveFromCart = useCallback((id: string) => setCart(prev => prev.filter(i => String(i.id) !== String(id))), []);
 
-  // OTIMIZAÇÃO: Handler de clique no produto simplificado (Sem fetch de reviews)
   const handleProductClick = useCallback((product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
@@ -338,8 +345,6 @@ function AppContent() {
         showToast('Nome atualizado!', 'success');
     }
   };
-
-  // REMOVIDO: handleSubmitReview
 
   const handleSellSubmit = async (productData: any) => {
     if (!user) return;
@@ -419,13 +424,13 @@ function AppContent() {
         </div>
       )}
 
-<button 
-  onClick={() => handleNavigate('SELL')} 
-  className="fixed bottom-6 right-6 z-[90] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30 active:scale-95 transition-transform hover:scale-105"
->
-  <PlusCircle size={24} /> 
-  <span>Vender</span>
-</button>
+      {/* CORREÇÃO: Botão Vender visível no PC (removeu lg:hidden e ajustou z-index) */}
+      <button 
+        onClick={() => handleNavigate('SELL')} 
+        className="fixed bottom-6 right-6 z-[90] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30 active:scale-95 transition-transform hover:scale-105"
+      >
+        <PlusCircle size={24} /> <span>Vender</span>
+      </button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600"/></div>}>
@@ -530,8 +535,6 @@ function AppContent() {
                      </div>
                   </div>
                </div>
-               
-               {/* REMOVIDO: Bloco de Avaliações (Review Section) */}
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
@@ -585,7 +588,16 @@ function AppContent() {
       {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
       
       <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
-      {showPlansModal && user && <PlansModal onClose={() => setShowPlansModal(false)} userEmail={user.email} userId={user.id} />}
+      
+      {/* CORREÇÃO: Modal de Planos com Refresh do Usuário */}
+      {showPlansModal && user && (
+          <PlansModal 
+             onClose={() => setShowPlansModal(false)} 
+             userEmail={user.email} 
+             userId={user.id}
+             onSuccess={refreshUserProfile}
+          />
+      )}
       
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
