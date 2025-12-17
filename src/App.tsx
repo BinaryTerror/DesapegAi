@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
@@ -7,21 +7,21 @@ import { AuthModal } from './components/AuthModal';
 import { AdminPanel } from './components/AdminPanel';
 import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
-import { Product, CartItem, UserProfile, Category, ViewState, Review } from './types';
+import { Product, CartItem, UserProfile, Category, ViewState } from './types';
 
-// Imports de ícones
+// Imports de ícones (Removido 'Star')
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, Save, CheckCircle, 
-  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, Star, AlertTriangle
+  PlusCircle, XCircle, Heart, Linkedin, Globe, Filter, ChevronDown, ChevronUp, X, Copy, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
-// --- OTIMIZAÇÃO 1: Utilitários fora do componente (evita recriação) ---
+// --- UTILS ---
 const formatMoney = (amount: number) => {
   return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
 };
 
-// --- OTIMIZAÇÃO 2: Hook de Debounce (Para a busca não travar a digitação) ---
+// --- HOOKS ---
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -31,8 +31,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// --- COMPONENTES MEMOIZADOS (React.memo) ---
-// Evita re-render se as props não mudarem
+// --- COMPONENTES MEMOIZADOS ---
 
 const Footer = React.memo(({ onOpenAbout }: { onOpenAbout: () => void }) => (
   <footer className="py-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
@@ -56,7 +55,6 @@ const AboutModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; onClose: 
       <div className="bg-white dark:bg-slate-800 w-full max-w-md p-6 rounded-3xl shadow-2xl relative text-center animate-scale-up max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors z-10"><XCircle size={24} className="text-gray-400" /></button>
         <h2 className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8 mt-2">Quem Somos</h2>
-        {/* Conteúdo estático simplificado para brevidade, mas mantido a estrutura */}
         <div className="space-y-6">
             <div className="bg-slate-50 dark:bg-slate-700/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Equipe DesapegAí</h3>
@@ -68,11 +66,8 @@ const AboutModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; onClose: 
   );
 });
 
-// Componente FilterBar Otimizado
 const CategoryFilterBar = React.memo(({ activeCat, onSelect }: { activeCat: string | null, onSelect: (c: string | null) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
-  // UseCallback para evitar recriação da função
   const handleToggle = useCallback(() => setIsOpen(prev => !prev), []);
   const handleSelect = useCallback((cat: string | null) => {
     onSelect(cat);
@@ -121,8 +116,7 @@ const AuthCallback: React.FC = () => {
 function AppContent() {
   const navigate = useNavigate();
 
-  // Estados
-  const [newRating, setNewRating] = useState(5);
+  // Estados Globais
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -135,7 +129,7 @@ function AppContent() {
 
   const [products, setProducts] = useState<Product[]>([]);
   
-  // Lazy init state (evita parse JSON a cada render, só na montagem inicial)
+  // Lazy init state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
     try {
       const saved = localStorage.getItem('desapegai_selected_product');
@@ -161,9 +155,9 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // OTIMIZAÇÃO 3: Estado de busca separado para debounce
+  // Busca com Debounce
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 400); // Espera 400ms após parar de digitar
+  const debouncedSearch = useDebounce(search, 400);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showSellForm, setShowSellForm] = useState(false);
@@ -172,11 +166,11 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPlansModal, setShowPlansModal] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  
+  // REMOVIDO: Estados de Review (reviews, newRating)
 
-  // --- EFEITOS E CALLBACKS OTIMIZADOS ---
+  // --- HANDLERS ---
 
-  // OTIMIZAÇÃO 4: useCallback para evitar recriação de funções passadas como props
   const handleToggleFavorite = useCallback((productId: string) => {
     if (!user) {
         setShowAuthModal(true);
@@ -188,16 +182,14 @@ function AppContent() {
       else newSet.add(productId);
       return newSet;
     });
-  }, [user]); // Removeu 'showToast' da dependência se não for mudar
+  }, [user]);
 
-  // Otimização: Atualizar imagem ativa apenas se produto mudar
   useEffect(() => {
     if (selectedProduct) {
       setActiveImage(selectedProduct.imageUrl);
     }
-  }, [selectedProduct?.id]); // Dependência específica
+  }, [selectedProduct?.id]);
 
-  // Tema
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
     if (savedTheme === 'dark') setIsDarkMode(true);
@@ -213,7 +205,6 @@ function AppContent() {
     }
   }, [isDarkMode]);
 
-  // Persistência
   useEffect(() => { localStorage.setItem('desapegai_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('desapegai_favorites', JSON.stringify(Array.from(favorites))); }, [favorites]);
 
@@ -230,7 +221,6 @@ function AppContent() {
 
       if (error) throw error;
       
-      // Map para corrigir nomes de campos camelCase
       const formattedData = (data || []).map((p: any) => ({
         ...p,
         originalPrice: p.original_price,
@@ -246,7 +236,7 @@ function AppContent() {
     } catch (error: any) { 
       console.error("Erro buscar produtos:", error.message);
     } finally { setIsLoading(false); }
-  }, []); // Sem dependências, função estável
+  }, []);
 
   const handleUserLogin = useCallback(async (authUser: any) => {
     setUser(authUser);
@@ -285,9 +275,6 @@ function AppContent() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // OTIMIZAÇÃO 5: useMemo para Filtragem Pesada
-  // Só roda o filtro quando debouncedSearch, products ou category mudam.
-  // Não roda a cada tecla digitada (apenas após o debounce).
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
@@ -296,7 +283,6 @@ function AppContent() {
     });
   }, [products, selectedCategory, debouncedSearch]);
 
-  // Handler functions memoized
   const handleAddToCart = useCallback((product: Product) => {
     setCart(prev => {
       const isItemInCart = prev.some(item => String(item.id) === String(product.id));
@@ -310,23 +296,10 @@ function AppContent() {
 
   const handleRemoveFromCart = useCallback((id: string) => setCart(prev => prev.filter(i => String(i.id) !== String(id))), []);
 
-  const handleProductClick = useCallback(async (product: Product) => {
+  // OTIMIZAÇÃO: Handler de clique no produto simplificado (Sem fetch de reviews)
+  const handleProductClick = useCallback((product: Product) => {
     setSelectedProduct(product);
     localStorage.setItem('desapegai_selected_product', JSON.stringify(product));
-    
-    // Optimistic Update: Limpa reviews antigas antes de carregar novas
-    setReviews([]); 
-    
-    const { data } = await supabase.from('reviews').select('*').eq('product_id', product.id).order('created_at', { ascending: false });
-    if (data) {
-        setReviews(data.map((r: any) => ({
-            id: r.id,
-            userName: r.user_name,
-            comment: r.comment,
-            rating: r.rating,
-            date: new Date(r.created_at).toLocaleDateString('pt-MZ')
-        })));
-    }
     navigate('/product');
   }, [navigate]);
 
@@ -343,7 +316,6 @@ function AppContent() {
     }
   }, [user, userProfile, navigate, showToast]);
 
-  // Actions
   const handleSavePhone = async () => {
     const phoneRegex = /^8\d{8}$/;
     if (!phoneRegex.test(tempPhone)) return showToast('Número inválido', 'error');
@@ -367,19 +339,7 @@ function AppContent() {
     }
   };
 
-  const handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProduct) return showToast('Erro', 'error');
-    const { error } = await supabase.from('reviews').insert([{
-        product_id: selectedProduct.id, user_id: user.id, user_name: userProfile?.full_name || 'Usuário',
-        rating: newRating, comment: ""
-    }]);
-    if (!error) {
-        setReviews(prev => [{ id: Date.now().toString(), userName: userProfile?.full_name || 'Eu', comment: "", rating: newRating, date: new Date().toLocaleDateString('pt-MZ') }, ...prev]);
-        setNewRating(5);
-        showToast('Avaliação enviada!', 'success');
-    }
-  };
+  // REMOVIDO: handleSubmitReview
 
   const handleSellSubmit = async (productData: any) => {
     if (!user) return;
@@ -434,7 +394,7 @@ function AppContent() {
         currentView="HOME"
         isDarkMode={isDarkMode}
         toggleDarkMode={() => setIsDarkMode(prev => !prev)}
-        onSearch={setSearch} // Passa o setter, mas o App usa o debouncedValue
+        onSearch={setSearch} 
         user={user}
         userProfile={userProfile}
         userProductCount={userProductCount}
@@ -474,8 +434,6 @@ function AppContent() {
                     <h2 className="text-2xl font-bold">{selectedCategory || 'Tudo'} ({filteredProducts.length})</h2>
                  </div>
                  {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
-                   // OTIMIZAÇÃO 6: Grid é renderizado, mas ProductCard deve ser React.memo (externo)
-                   // Passamos callbacks estáveis (handleAddToCart, handleProductClick)
                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                       {filteredProducts.map(p => (
                         <ProductCard 
@@ -506,7 +464,6 @@ function AppContent() {
                  <div className="space-y-4">
                     {cart.map(item => (
                        <div key={item.id} className="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm">
-                          {/* Imagem pequena com lazy loading */}
                           <img src={item.imageUrl} loading="lazy" width="80" height="80" className="w-20 h-20 rounded-lg object-cover bg-gray-100" alt={item.title} />
                           <div className="flex-1">
                              <h3 className="font-bold line-clamp-1">{item.title}</h3>
@@ -528,9 +485,8 @@ function AppContent() {
           <Route path="/product" element={selectedProduct ? (
             <div className="max-w-4xl mx-auto animate-fade-in pb-20">
                <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-indigo-600"><X size={16} /> Fechar</button>
-               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-8">
+               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2 mb-10">
                   <div className="h-[400px] md:h-[500px] bg-gray-100 relative">
-                     {/* OTIMIZAÇÃO 7: Imagem principal com decoding async e priority se for LCP */}
                      <img src={activeImage || selectedProduct.imageUrl} className="w-full h-full object-cover transition-opacity duration-300" alt={selectedProduct.title} decoding="async" />
                      <button onClick={() => handleToggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg hover:scale-110 transition-transform"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
                      
@@ -571,29 +527,7 @@ function AppContent() {
                   </div>
                </div>
                
-               {/* Avaliações mantidas simplificadas */}
-               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-6 mb-10">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Star className="text-yellow-400" /> Avaliações</h3>
-                  <div className="space-y-6 mb-8">
-                     {reviews.length === 0 ? <p className="text-gray-500 text-sm">Sem avaliações ainda.</p> : reviews.map(r => (
-                        <div key={r.id} className="border-b dark:border-slate-700 pb-4">
-                           <div className="flex justify-between items-center mb-1">
-                              <span className="font-bold text-sm">{r.userName}</span>
-                              <div className="flex text-yellow-400">{[...Array(5)].map((_,i) => <Star key={i} size={12} className={i < r.rating ? "fill-yellow-400" : "text-gray-300"} />)}</div>
-                           </div>
-                           <p className="text-xs text-gray-400">{r.date}</p>
-                        </div>
-                     ))}
-                  </div>
-                  {user && (
-                     <form onSubmit={handleSubmitReview} className="bg-gray-50 dark:bg-slate-700/30 p-4 rounded-xl text-center">
-                        <div className="flex justify-center gap-2 mb-4">
-                           {[1,2,3,4,5].map(s => (<button type="button" key={s} onClick={() => setNewRating(s)}><Star size={24} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} /></button>))}
-                        </div>
-                        <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold">Enviar</button>
-                     </form>
-                  )}
-               </div>
+               {/* REMOVIDO: Bloco de Avaliações (Review Section) */}
             </div>
           ) : <div className="text-center py-20"><p>Produto não encontrado.</p><button onClick={() => navigate('/')} className="text-indigo-600 font-bold mt-4">Voltar</button></div>} />
 
@@ -602,7 +536,6 @@ function AppContent() {
                 <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-gray-500"><X size={16}/> Voltar</button>
                 <h2 className="text-2xl font-bold mb-6">Meus Favoritos</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                   {/* Otimização: Filtro direto sem state intermediário complexo */}
                    {products.filter(p => favorites.has(p.id)).map(p => (
                       <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} onClick={handleProductClick} isLiked={true} onToggleLike={(prod) => handleToggleFavorite(prod.id)} currentUserId={user?.id} />
                    ))}
@@ -613,7 +546,6 @@ function AppContent() {
 
           <Route path="/profile" element={
             <div className="max-w-2xl mx-auto pb-20 animate-fade-in">
-              {/* Profile content simplificado para foco */}
               <div className="text-center mb-10 bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8">
                 <img src={userProfile?.avatar_url || `https://ui-avatars.com/api/?name=${userProfile?.full_name || 'User'}`} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" loading="lazy" />
                 <h2 className="text-2xl font-bold dark:text-white">{userProfile?.full_name || 'Usuário'}</h2>
@@ -646,13 +578,11 @@ function AppContent() {
       
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
       
-      {/* SellForm com Suspense implícito se fosse lazy, aqui é condicional simples */}
       {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
       
       <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
       {showPlansModal && user && <PlansModal onClose={() => setShowPlansModal(false)} userEmail={user.email} userId={user.id} />}
       
-      {/* Payment Modal Simplificado */}
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm">
