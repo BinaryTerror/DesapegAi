@@ -10,10 +10,12 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
-// Icons
+// --- CORREÇÃO AQUI: Adicionado 'Crown' aos imports ---
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
-  PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, MapPin, AlertTriangle, Image as ImageIcon, Lock, ChevronLeft, Globe, MessageCircle, Copy, X
+  PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
+  MapPin, AlertTriangle, Image as ImageIcon, Lock, ChevronLeft, 
+  Globe, MessageCircle, Copy, X, Crown
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
