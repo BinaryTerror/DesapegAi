@@ -56,6 +56,12 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export const MOZ_PROVINCES = [
+  "Maputo Cidade", "Maputo Província", "Gaza", "Inhambane",
+  "Sofala", "Manica", "Tete", "Zambézia", "Nampula",
+  "Niassa", "Cabo Delgado"
+];
+
 export interface UserProfile {
   id: string;
   full_name: string;
