@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { 
-  Users, Package, DollarSign, Activity, Trash2, CheckCircle, 
-  Search, Shield, AlertTriangle, Loader2 
+  Users, Package, Ban, Trash2, CheckCircle, 
+  Search, Shield, AlertTriangle, Loader2, CalendarPlus, Lock, Unlock
 } from 'lucide-react';
 import { UserProfile, Product } from '../types';
 
@@ -12,7 +12,7 @@ export const AdminPanel = () => {
     totalUsers: 0,
     totalProducts: 0,
     totalSold: 0,
-    totalValue: 0
+    blockedUsers: 0 // Nova métrica
   });
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -42,14 +42,17 @@ export const AdminPanel = () => {
       if (productsError) throw productsError;
 
       // 3. Calcular Estatísticas
-      const totalValue = (productsData || []).reduce((acc, curr) => acc + (curr.price || 0), 0);
       const totalSold = (productsData || []).filter(p => p.status === 'sold').length;
+      
+      // Conta usuários onde status é 'blocked'
+      // Nota: Certifique-se de que sua tabela profiles tem uma coluna 'status' ou 'banned'
+      const blockedUsers = (usersData || []).filter((u: any) => u.status === 'blocked').length;
 
       setStats({
         totalUsers: usersData?.length || 0,
         totalProducts: productsData?.length || 0,
         totalSold,
-        totalValue
+        blockedUsers
       });
 
       setUsers(usersData as UserProfile[]);
@@ -62,16 +65,65 @@ export const AdminPanel = () => {
     }
   };
 
+  // --- AÇÃO: Adicionar 6 Meses de Plano ---
+  const handleAddPlan6Months = async (user: UserProfile) => {
+    if (!window.confirm(`Adicionar 6 meses de plano VIP para ${user.full_name}?`)) return;
+
+    // Calcula a data atual + 6 meses
+    const now = new Date();
+    const futureDate = new Date(now.setMonth(now.getMonth() + 6));
+    const isoDate = futureDate.toISOString();
+
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ 
+                plan: 'vip', 
+                premium_until: isoDate // Certifique-se de ter essa coluna no Supabase
+            })
+            .eq('id', user.id);
+
+        if (error) throw error;
+
+        alert(`Sucesso! ${user.full_name} agora é VIP até ${futureDate.toLocaleDateString()}`);
+        fetchData(); // Recarrega os dados
+    } catch (err: any) {
+        alert("Erro ao atualizar plano. Verifique se a coluna 'premium_until' existe na tabela profiles.");
+        console.error(err);
+    }
+  };
+
+  // --- AÇÃO: Bloquear/Desbloquear Usuário ---
+  const handleToggleBlock = async (user: any) => {
+    const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
+    const actionName = newStatus === 'blocked' ? 'BLOQUEAR' : 'DESBLOQUEAR';
+    
+    if (!window.confirm(`Tem certeza que deseja ${actionName} o usuário ${user.full_name}?`)) return;
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', user.id);
+
+    if (!error) {
+        setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u) as any);
+        // Atualiza a contagem localmente para não precisar recarregar tudo
+        setStats(prev => ({
+            ...prev,
+            blockedUsers: newStatus === 'blocked' ? prev.blockedUsers + 1 : prev.blockedUsers - 1
+        }));
+    } else {
+        alert("Erro ao alterar status.");
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm("ATENÇÃO: Isso apagará o usuário e todos os seus produtos. Tem certeza?")) return;
-    
-    // Nota: O Supabase Auth deve ser deletado via Edge Function ou manualmente no painel por segurança,
-    // mas aqui removemos o perfil e os produtos via Cascade se configurado no banco.
     const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    
     if (!error) {
       setUsers(users.filter(u => u.id !== userId));
-      alert("Usuário removido da base de dados.");
+      setStats(prev => ({...prev, totalUsers: prev.totalUsers - 1}));
+      alert("Usuário removido.");
     } else {
       alert("Erro ao remover usuário.");
     }
@@ -82,6 +134,7 @@ export const AdminPanel = () => {
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (!error) {
       setProducts(products.filter(p => p.id !== productId));
+      setStats(prev => ({...prev, totalProducts: prev.totalProducts - 1}));
     }
   };
 
@@ -96,7 +149,7 @@ export const AdminPanel = () => {
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white">Painel Administrativo</h1>
-          <p className="text-gray-500">Visão geral do DesapegAí</p>
+          <p className="text-gray-500">Gestão do DesapegAí</p>
         </div>
         
         <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm">
@@ -136,7 +189,7 @@ export const AdminPanel = () => {
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalUsers}</h3>
             </div>
 
-            {/* Card Desapegos (Nome Alterado) */}
+            {/* Card Desapegos */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl">
@@ -158,15 +211,15 @@ export const AdminPanel = () => {
               <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stats.totalSold}</h3>
             </div>
 
-            {/* Card Valor */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            {/* Card BLOQUEADOS (NOVO EM VERMELHO) */}
+            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 rounded-xl">
-                  <DollarSign size={24} />
+                <div className="p-3 bg-red-100 dark:bg-red-800 text-red-600 dark:text-white rounded-xl">
+                  <Ban size={24} />
                 </div>
               </div>
-              <p className="text-gray-500 text-sm mb-1">Valor em Plataforma</p>
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white">{formatMoney(stats.totalValue)}</h3>
+              <p className="text-red-600/70 dark:text-red-300 text-sm mb-1 font-bold">Bloqueados</p>
+              <h3 className="text-3xl font-black text-red-600 dark:text-white">{stats.blockedUsers}</h3>
             </div>
           </div>
         </>
@@ -184,14 +237,14 @@ export const AdminPanel = () => {
                 <tr>
                   <th className="p-4">Usuário</th>
                   <th className="p-4">WhatsApp</th>
-                  <th className="p-4">Role</th>
-                  <th className="p-4">Data</th>
-                  <th className="p-4 text-right">Ações</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Plano</th>
+                  <th className="p-4 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-                {users.map(u => (
-                  <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                {users.map((u: any) => (
+                  <tr key={u.id} className={`hover:bg-gray-50 dark:hover:bg-slate-700/50 ${u.status === 'blocked' ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name}`} className="w-10 h-10 rounded-full bg-gray-200" alt="" />
@@ -203,13 +256,43 @@ export const AdminPanel = () => {
                     </td>
                     <td className="p-4 text-gray-600 dark:text-gray-300">{u.whatsapp || '-'}</td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {u.role || 'user'}
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'blocked' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {u.status === 'blocked' ? 'Bloqueado' : 'Ativo'}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-500">{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td className="p-4 text-right">
-                       <button onClick={() => handleDeleteUser(u.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button>
+                    <td className="p-4">
+                        <span className="text-xs font-medium text-gray-500">
+                            {u.plan === 'vip' ? 'VIP' : 'Grátis'}
+                        </span>
+                    </td>
+                    <td className="p-4">
+                       <div className="flex items-center justify-center gap-2">
+                           {/* BOTÃO +6 MESES (NOVO) */}
+                           <button 
+                             onClick={() => handleAddPlan6Months(u)}
+                             className="px-3 py-1.5 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-sm"
+                             title="Adicionar 6 meses de VIP"
+                           >
+                             <CalendarPlus size={14} /> +6
+                           </button>
+
+                           {/* BOTÃO BLOQUEAR/DESBLOQUEAR */}
+                           <button 
+                             onClick={() => handleToggleBlock(u)}
+                             className={`p-2 rounded-lg text-xs font-bold transition-colors ${u.status === 'blocked' ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                             title={u.status === 'blocked' ? "Desbloquear" : "Bloquear"}
+                           >
+                             {u.status === 'blocked' ? <Unlock size={16}/> : <Lock size={16}/>}
+                           </button>
+
+                           <button 
+                             onClick={() => handleDeleteUser(u.id)} 
+                             className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100"
+                             title="Apagar Usuário"
+                           >
+                             <Trash2 size={16}/>
+                           </button>
+                       </div>
                     </td>
                   </tr>
                 ))}
