@@ -419,9 +419,13 @@ function AppContent() {
         </div>
       )}
 
-      <button onClick={() => handleNavigate('SELL')} className="lg:hidden fixed bottom-6 right-6 z-[1000] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30 active:scale-95 transition-transform">
-        <PlusCircle size={24} /> <span>Vender</span>
-      </button>
+<button 
+  onClick={() => handleNavigate('SELL')} 
+  className="fixed bottom-6 right-6 z-[90] bg-indigo-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold shadow-indigo-500/30 active:scale-95 transition-transform hover:scale-105"
+>
+  <PlusCircle size={24} /> 
+  <span>Vender</span>
+</button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
         <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600"/></div>}>
