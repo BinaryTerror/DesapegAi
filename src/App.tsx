@@ -60,12 +60,12 @@ const AboutModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
             <div className="relative w-20 h-20 mx-auto mb-3">
               <img src="https://ui-avatars.com/api/?name=Alex+Nhabinde&background=10b981&color=fff&size=128" alt="Alex Nhabinde" className="w-full h-full rounded-full object-cover border-4 border-white dark:border-slate-600 shadow-md" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alex Nhabinde</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Hagade</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-wider font-bold">Creator & Dev</p>
             <a href="http://piripiri.chat" target="_blank" rel="noreferrer" className="w-full py-2.5 bg-black dark:bg-white dark:text-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-lg"><Globe size={18} /> Ver Portfolio</a>
           </div>
         </div>
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAíTeam</p></div>
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700"><p className="text-xs text-gray-400">© 2025 DesapegAí Team</p></div>
       </div>
     </div>
   );
