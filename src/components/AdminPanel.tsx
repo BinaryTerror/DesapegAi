@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { 
   Users, Package, Ban, Trash2, CheckCircle, 
   Loader2, Lock, Unlock, Crown, Plus, Calendar, Star, 
-  Search, TrendingUp, AlertCircle
+  Search, TrendingUp
 } from 'lucide-react';
 import { UserProfile, Product } from '../types';
 
@@ -78,6 +78,7 @@ export const AdminPanel = () => {
   const handleAddQuota = async (user: UserProfile) => {
     if (!window.confirm(`Adicionar +6 anúncios para ${user.full_name}?`)) return;
     
+    // Busca dado atualizado para garantir
     const { data: freshUser } = await supabase.from('profiles').select('posts_limit').eq('id', user.id).single();
     const currentLimit = freshUser?.posts_limit ?? 6; 
     const newLimit = currentLimit + 6;
@@ -86,6 +87,7 @@ export const AdminPanel = () => {
         
     if (!error) {
         alert(`Sucesso! Limite: ${newLimit}`);
+        // Atualiza interface localmente
         setUsers(users.map(u => u.id === user.id ? { ...u, posts_limit: newLimit } : u));
     } else {
         alert("Erro ao atualizar.");
@@ -112,7 +114,7 @@ export const AdminPanel = () => {
 
     if (!error) {
         alert(`Sucesso! VIP até ${futureDate.toLocaleDateString()}`);
-        fetchData();
+        fetchData(); // Recarrega para garantir
     } else {
         alert("Erro ao atualizar VIP.");
     }
@@ -142,7 +144,7 @@ export const AdminPanel = () => {
   const formatMoney = (amount: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(amount);
   const isVipActive = (user: UserProfile) => user.plan === 'vip' && user.premium_until && new Date(user.premium_until) > new Date();
 
-  // Filtro de busca simples
+  // Filtro de busca
   const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.whatsapp?.includes(searchTerm));
 
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-slate-900"><Loader2 className="animate-spin text-indigo-600" size={48}/></div>;
@@ -220,7 +222,11 @@ export const AdminPanel = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {filteredUsers.map((u: any) => {
                   const vip = isVipActive(u);
-                  const userAdsCount = products.filter(p => p.sellerId === u.id && p.status !== 'sold').length;
+                  
+                  // --- CORREÇÃO AQUI ---
+                  // Agora usamos o campo 'posts_created_total' que é o mesmo que o App usa.
+                  // Se for null, usa 0.
+                  const usageCount = u.posts_created_total || 0; 
                   const limit = u.posts_limit || 6;
                   const isBlocked = u.status === 'blocked';
 
@@ -254,12 +260,13 @@ export const AdminPanel = () => {
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-gray-600 font-bold dark:text-gray-300 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs">FREE</span>
-                                    {userAdsCount >= limit && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold animate-pulse">LIMITE</span>}
+                                    {usageCount >= limit && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold animate-pulse">LIMITE</span>}
                                 </div>
                                 <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className={`h-full ${userAdsCount >= limit ? 'bg-red-500' : 'bg-blue-500'}`} style={{width: `${Math.min(100, (userAdsCount/limit)*100)}%`}}></div>
+                                    {/* Barra de progresso visual */}
+                                    <div className={`h-full ${usageCount >= limit ? 'bg-red-500' : 'bg-blue-500'}`} style={{width: `${Math.min(100, (usageCount/limit)*100)}%`}}></div>
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-1">{userAdsCount} de {limit} usados</p>
+                                <p className="text-[10px] text-gray-400 mt-1">{usageCount} de {limit} usados</p>
                             </div>
                         )}
                       </td>
