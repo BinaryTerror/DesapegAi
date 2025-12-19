@@ -298,40 +298,57 @@ function AppContent() {
     });
   }, [user]);
 
-  const handleSellSubmit = async (productData: any) => {
+ const handleSellSubmit = async (productData: any) => {
     if (!user) return;
+    
+    // Mostra loading imediatamente
+    setIsLoading(true);
+
     const payload = {
        title: productData.title, description: productData.description, price: productData.price,
        image_url: productData.imageUrl, images: productData.images, category: productData.category,
        subcategory: productData.subcategory, condition: productData.condition, location: productData.location,
-       province: productData.province, // Salva Província
-       user_id: user.id, seller_name: productData.sellerName, seller_phone: productData.sellerPhone, status: 'available'
+       province: productData.province, user_id: user.id, seller_name: productData.sellerName, seller_phone: productData.sellerPhone, status: 'available'
     };
     
     let error;
+    
     if (editingProduct) {
+        // EDIÇÃO
         const { error: err } = await supabase.from('products').update(payload).eq('id', editingProduct.id);
         error = err;
     } else {
+        // NOVO PRODUTO
         const { error: err } = await supabase.from('products').insert([payload]);
         error = err;
-
-          if (!err) {
-            setUserProductCount(prev => prev + 1);
-        }
     }
 
     if (!error) {
         showToast('Sucesso!', 'success');
-        fetchProducts();
+        
+        // 1. Atualiza a lista de produtos na tela
+        await fetchProducts();
+        
+        // 2. FORÇA A RECONTAGEM REAL NO BANCO (Isso garante que o número atualize)
+        if (!editingProduct) {
+            const { count } = await supabase
+                .from('products')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .neq('status', 'sold');
+            
+            setUserProductCount(count || 0);
+        }
+
         setShowSellForm(false);
         setEditingProduct(null);
         navigate('/');
     } else {
-        showToast('Erro ao salvar.', 'error');
+        showToast('Erro ao salvar: ' + error.message, 'error');
     }
+    
+    setIsLoading(false);
   };
-
   // Funções de Gerenciamento do Produto
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm("Apagar?")) return;
