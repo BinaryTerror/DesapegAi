@@ -298,7 +298,7 @@ function AppContent() {
     });
   }, [user]);
 
- const handleSellSubmit = async (productData: any) => {
+const handleSellSubmit = async (productData: any) => {
     if (!user) return;
     
     // Mostra loading imediatamente
