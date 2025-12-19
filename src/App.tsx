@@ -10,12 +10,11 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
-// --- CORREÇÃO AQUI: Adicionado 'Crown' aos imports ---
+// Icons
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Image as ImageIcon, Lock, ChevronLeft, 
-  Globe, MessageCircle, Copy, X, Crown
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -33,6 +32,90 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debouncedValue;
 }
+
+// 🔐 HOOK DE SEGURANÇA ADMIN
+function useAdminAuth() {
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setIsAdmin(false); setLoading(false); return; }
+        const { data, error } = await supabase.rpc('am_i_admin');
+        if (error) throw error;
+        setIsAdmin(data || false);
+      } catch (err) {
+        console.error('Falha de segurança:', err);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAdminStatus();
+  }, []);
+
+  return { isAdmin, loading };
+}
+
+// 🔐 COMPONENTE GATE (Senha Visual)
+const AdminGate = ({ children }: { children: React.ReactNode }) => {
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [inputKey, setInputKey] = useState('');
+  const [error, setError] = useState(false);
+  
+  const SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY;
+
+  if (isUnlocked) return <>{children}</>;
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (SECRET_KEY && inputKey === SECRET_KEY) {
+      setIsUnlocked(true);
+      setError(false);
+    } else {
+      setError(true);
+      setInputKey('');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+      <div className="bg-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-md text-center border border-gray-700">
+        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+           <ShieldAlert size={32} className="text-red-500" />
+        </div>
+        <h2 className="text-2xl font-black text-white mb-2">Área Restrita</h2>
+        <p className="text-gray-400 text-sm mb-6">Confirmação de identidade necessária.</p>
+        <form onSubmit={handleUnlock} className="space-y-4">
+          <input type="password" placeholder="Senha Mestra..." value={inputKey} onChange={e => setInputKey(e.target.value)} className="w-full p-4 bg-gray-900 border border-gray-700 rounded-xl text-white text-center tracking-widest outline-none focus:border-red-500 transition-colors" autoFocus />
+          {error && <p className="text-red-500 text-xs font-bold animate-pulse">Senha Incorreta</p>}
+          <button className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><Unlock size={18} /> Acessar Painel</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// 🔐 ROTA PROTEGIDA
+const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAdmin, loading } = useAdminAuth();
+
+  if (loading) return <div className="flex justify-center items-center h-screen bg-gray-900 text-white"><Loader2 className="animate-spin mr-2"/> Verificando credenciais...</div>;
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-slate-900 text-center px-4">
+         <ShieldAlert size={64} className="text-red-500 mb-4" />
+         <h1 className="text-3xl font-black text-gray-900 dark:text-white">Acesso Negado</h1>
+         <p className="text-gray-500 mt-2">O servidor recusou sua credencial de administrador.</p>
+      </div>
+    );
+  }
+
+  return <AdminGate>{children}</AdminGate>;
+};
 
 // --- COMPONENTES AUXILIARES ---
 const Footer = React.memo(({ onOpenAbout }: { onOpenAbout: () => void }) => (
@@ -83,7 +166,6 @@ function AppContent() {
   const [cart, setCart] = useState<CartItem[]>(() => { try { return JSON.parse(localStorage.getItem('desapegai_cart') || '[]'); } catch { return []; } });
   const [favorites, setFavorites] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem('desapegai_favorites') || '[]')); } catch { return new Set(); } });
   
-  // Produto Selecionado & Imagem Ativa
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
     try { return JSON.parse(localStorage.getItem('desapegai_selected_product') || 'null'); } catch { return null; }
   });
@@ -109,39 +191,26 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   
-  // Edição de Perfil
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
 
   // --- EFEITOS ---
 
-  // Atualiza imagem ativa quando produto muda
-  useEffect(() => {
-    if (selectedProduct) setActiveImage(selectedProduct.imageUrl);
-  }, [selectedProduct?.id]);
+  useEffect(() => { if (selectedProduct) setActiveImage(selectedProduct.imageUrl); }, [selectedProduct?.id]);
 
-  // Tema Dark/Light
   useEffect(() => {
     const savedTheme = localStorage.getItem('desapegai_theme');
     if (savedTheme === 'dark') setIsDarkMode(true);
   }, []);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('desapegai_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('desapegai_theme', 'light');
-    }
+    if (isDarkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('desapegai_theme', 'dark'); } 
+    else { document.documentElement.classList.remove('dark'); localStorage.setItem('desapegai_theme', 'light'); }
   }, [isDarkMode]);
 
-  // Persistência
   useEffect(() => { localStorage.setItem('desapegai_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('desapegai_favorites', JSON.stringify(Array.from(favorites))); }, [favorites]);
-
-  // --- FETCHING DE DADOS ---
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
@@ -162,7 +231,7 @@ function AppContent() {
         imageUrl: p.image_url,
         sellerName: p.seller_name,
         sellerPhone: p.seller_phone,
-        sellerId: p.user_id,
+        sellerId: p.user_id, // IMPORTANTE: Mapear user_id do banco para sellerId
         createdAt: p.created_at
       }));
       
@@ -180,6 +249,7 @@ function AppContent() {
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
       
+      // Contagem inicial
       const { count } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
@@ -235,7 +305,6 @@ function AppContent() {
     }
   }, [user, showToast]);
 
-  // --- VERIFICAÇÃO DE BLOQUEIO DE VENDAS ---
   const canUserSell = useCallback(() => {
     if (!user) return false;
     if (userProfile?.role === 'admin') return true;
@@ -298,10 +367,9 @@ function AppContent() {
     });
   }, [user]);
 
-const handleSellSubmit = async (productData: any) => {
+  // --- CORREÇÃO: Atualização do Contador de Produtos ---
+  const handleSellSubmit = async (productData: any) => {
     if (!user) return;
-    
-    // Mostra loading imediatamente
     setIsLoading(true);
 
     const payload = {
@@ -312,43 +380,36 @@ const handleSellSubmit = async (productData: any) => {
     };
     
     let error;
-    
     if (editingProduct) {
-        // EDIÇÃO
         const { error: err } = await supabase.from('products').update(payload).eq('id', editingProduct.id);
         error = err;
     } else {
-        // NOVO PRODUTO
         const { error: err } = await supabase.from('products').insert([payload]);
         error = err;
-    }
-
-    if (!error) {
-        showToast('Sucesso!', 'success');
         
-        // 1. Atualiza a lista de produtos na tela
-        await fetchProducts();
-        
-        // 2. FORÇA A RECONTAGEM REAL NO BANCO (Isso garante que o número atualize)
-        if (!editingProduct) {
+        // --- AQUI ESTÁ A MÁGICA: Recalcular do banco ---
+        if (!err) {
             const { count } = await supabase
                 .from('products')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
                 .neq('status', 'sold');
-            
             setUserProductCount(count || 0);
         }
+    }
 
+    if (!error) {
+        showToast('Sucesso!', 'success');
+        fetchProducts();
         setShowSellForm(false);
         setEditingProduct(null);
         navigate('/');
     } else {
-        showToast('Erro ao salvar: ' + error.message, 'error');
+        showToast('Erro ao salvar.', 'error');
     }
-    
     setIsLoading(false);
   };
+
   // Funções de Gerenciamento do Produto
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm("Apagar?")) return;
@@ -356,6 +417,9 @@ const handleSellSubmit = async (productData: any) => {
     if(!error) {
         setProducts(prev => prev.filter(p => p.id !== productId));
         showToast('Apagado.', 'success');
+        // Recalcula contagem após deletar
+        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'sold');
+        setUserProductCount(count || 0);
     }
   };
 
@@ -365,6 +429,9 @@ const handleSellSubmit = async (productData: any) => {
     if(!error) {
         setProducts(prev => prev.map(p => p.id === productId ? {...p, status: 'sold'} : p));
         showToast('Vendido!', 'success');
+        // Venda também tira da contagem de "ativos"
+        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'sold');
+        setUserProductCount(count || 0);
     }
   };
 
@@ -390,12 +457,10 @@ const handleSellSubmit = async (productData: any) => {
     }
   };
 
-  // Lógica de Venda WhatsApp
   const handleWhatsAppCheckout = () => {
     const item = cart[0];
     if (!item) return;
-    const sellerPhone = item.sellerPhone || '841234567';
-    const cleanedPhone = String(sellerPhone).replace(/\D/g, '').replace(/^258/, '');
+    const cleanedPhone = String(item.sellerPhone || '841234567').replace(/\D/g, '').replace(/^258/, '');
     const message = `Olá! Tenho interesse no produto: "${item.title}" (${formatMoney(item.price)}) que vi no DesapegAí. Ainda está disponível?`;
     window.open(`https://wa.me/258${cleanedPhone}?text=${encodeURIComponent(message)}`, '_blank');
     setShowPaymentModal(false);
@@ -648,7 +713,7 @@ const handleSellSubmit = async (productData: any) => {
             </div>
           } />
 
-          <Route path="/admin" element={userProfile?.role === 'admin' ? <AdminPanel /> : <div className="text-center py-20 text-red-500 font-bold"><AlertTriangle className="mx-auto mb-2" size={40}/>Acesso Restrito</div>} />
+          <Route path="/admin" element={<ProtectedAdminRoute><AdminPanel /></ProtectedAdminRoute>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
         </Suspense>
