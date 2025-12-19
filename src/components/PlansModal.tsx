@@ -5,6 +5,7 @@ interface PlansModalProps {
   onClose: () => void;
   userEmail: string;
   userId: string;
+  onSuccess?: () => void;
 }
 
 export const PlansModal: React.FC<PlansModalProps> = ({ onClose, userEmail, userId }) => {
