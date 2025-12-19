@@ -50,6 +50,7 @@ export interface Product {
   createdAt: string;
   likes: number;
   isPromoted?: boolean;
+   province?: string; 
 }
 
 export interface CartItem extends Product {
