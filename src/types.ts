@@ -74,6 +74,7 @@ export interface UserProfile {
   plan?: 'free' | 'vip';       // Tipo do plano
   premium_until?: string | null; // Data de validade do VIP (ISO String)
   status?: 'active' | 'blocked'; // Status da conta
+  posts_created_total?: number;
 }
 
 export type ViewState = 'HOME' | 'CART' | 'PROFILE' | 'PRODUCT_DETAIL' | 'FAVORITES' | 'SELL' | 'ADMIN' | 'SETTINGS';
