@@ -315,6 +315,10 @@ function AppContent() {
     } else {
         const { error: err } = await supabase.from('products').insert([payload]);
         error = err;
+
+          if (!err) {
+            setUserProductCount(prev => prev + 1);
+        }
     }
 
     if (!error) {
