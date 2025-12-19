@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
@@ -10,10 +10,11 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
+// Icons
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -136,6 +137,25 @@ const AboutModal = ({ isOpen, onClose }: any) => {
   );
 };
 
+// --- 🔙 BOTÃO VOLTAR FLUTUANTE (PEQUENO) ---
+const GlobalBackButton = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Não mostrar na Home ('/')
+  if (location.pathname === '/') return null;
+
+  return (
+    <button 
+      onClick={() => navigate(-1)}
+      className="fixed bottom-6 left-6 z-[90] bg-white dark:bg-slate-800 text-gray-800 dark:text-white w-12 h-12 rounded-full shadow-xl border border-gray-200 dark:border-slate-700 hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
+      title="Voltar"
+    >
+      <ArrowLeft size={20} />
+    </button>
+  );
+};
+
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
@@ -156,7 +176,7 @@ function AppContent() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
-  // ✅ MUDANÇA: O contador agora vem direto do perfil
+  // ✅ O contador agora vem direto do perfil
   const usageCount = userProfile?.posts_created_total || 0;
 
   // Dados
@@ -243,7 +263,6 @@ function AppContent() {
 
   const handleUserLogin = useCallback(async (authUser: any) => {
     setUser(authUser);
-    // Aqui buscamos o perfil, que JÁ CONTÉM o 'posts_created_total'
     const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
     if (data) {
       setUserProfile(data);
@@ -291,13 +310,12 @@ function AppContent() {
     if (!user) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (data) {
-      setUserProfile(data); // Isso atualiza o contador na tela
-      showToast('Perfil atualizado!', 'success');
+      setUserProfile(data);
+      showToast('Plano atualizado com sucesso!', 'success');
     }
   }, [user, showToast]);
 
   // --- LÓGICA BLINDADA DE VENDAS ---
-  // Agora usamos 'usageCount' (que vem do perfil)
   const canUserSell = useCallback(() => {
     if (!user) return false;
     if (userProfile?.role === 'admin') return true;
@@ -306,7 +324,7 @@ function AppContent() {
     if (isVip) return true;
 
     const limit = userProfile?.posts_limit || 6;
-    return usageCount < limit; // Compara Histórico Total < Limite
+    return usageCount < limit; 
   }, [user, userProfile, usageCount]);
 
   // --- ACTION HANDLERS ---
@@ -404,7 +422,6 @@ function AppContent() {
     if(!error) {
         setProducts(prev => prev.filter(p => p.id !== productId));
         showToast('Apagado.', 'success');
-        // Deletar NÃO diminui o uso (regras de negócio)
     }
   };
 
@@ -458,7 +475,7 @@ function AppContent() {
         onSearch={setSearch} 
         user={user}
         userProfile={userProfile}
-        userProductCount={usageCount} // Agora enviamos o contador vitalício para a Navbar
+        userProductCount={usageCount} // Envia o contador vitalício para a Navbar
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
       />
@@ -468,6 +485,9 @@ function AppContent() {
              {toast.msg}
           </div>
       )}
+
+      {/* BOTÃO VOLTAR FLUTUANTE (Novo! Pequeno e discreto) */}
+      <GlobalBackButton />
 
       {/* MODAL TELEFONE */}
       {showPhoneModal && (
