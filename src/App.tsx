@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom'; // Adicionado useLocation
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
@@ -10,11 +10,10 @@ import { PlansModal } from './components/PlansModal';
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
-// Icons
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -33,7 +32,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// 🔐 HOOK DE SEGURANÇA (Backend Verification)
+// 🔐 HOOK DE SEGURANÇA ADMIN
 function useAdminAuth() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -43,7 +42,6 @@ function useAdminAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setIsAdmin(false); setLoading(false); return; }
-
         const { data, error } = await supabase.rpc('am_i_admin');
         if (error) throw error;
         setIsAdmin(data || false);
@@ -60,17 +58,11 @@ function useAdminAuth() {
   return { isAdmin, loading };
 }
 
-// 🔐 COMPONENTE GATE MELHORADO (Sessão Persistente)
-// Agora ele lembra que você já digitou a senha enquanto a aba estiver aberta!
+// 🔐 COMPONENTE GATE (Senha Visual)
 const AdminGate = ({ children }: { children: React.ReactNode }) => {
-  // Inicializa verificando se já desbloqueou nesta sessão
-  const [isUnlocked, setIsUnlocked] = useState(() => {
-    return sessionStorage.getItem('admin_gate_unlocked') === 'true';
-  });
-  
+  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('admin_gate_unlocked') === 'true');
   const [inputKey, setInputKey] = useState('');
   const [error, setError] = useState(false);
-  
   const SECRET_KEY = import.meta.env.VITE_ADMIN_SECRET_KEY;
 
   if (isUnlocked) return <>{children}</>;
@@ -78,7 +70,6 @@ const AdminGate = ({ children }: { children: React.ReactNode }) => {
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     if (SECRET_KEY && inputKey === SECRET_KEY) {
-      // Salva na sessão do navegador
       sessionStorage.setItem('admin_gate_unlocked', 'true');
       setIsUnlocked(true);
       setError(false);
@@ -95,7 +86,7 @@ const AdminGate = ({ children }: { children: React.ReactNode }) => {
            <ShieldAlert size={32} className="text-red-500" />
         </div>
         <h2 className="text-2xl font-black text-white mb-2">Área Restrita</h2>
-        <p className="text-gray-400 text-sm mb-6">Confirme sua identidade uma única vez.</p>
+        <p className="text-gray-400 text-sm mb-6">Confirmação de identidade necessária.</p>
         <form onSubmit={handleUnlock} className="space-y-4">
           <input type="password" placeholder="Senha Mestra..." value={inputKey} onChange={e => setInputKey(e.target.value)} className="w-full p-4 bg-gray-900 border border-gray-700 rounded-xl text-white text-center tracking-widest outline-none focus:border-red-500 transition-colors" autoFocus />
           {error && <p className="text-red-500 text-xs font-bold animate-pulse">Senha Incorreta</p>}
@@ -109,9 +100,7 @@ const AdminGate = ({ children }: { children: React.ReactNode }) => {
 // 🔐 ROTA PROTEGIDA
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, loading } = useAdminAuth();
-
   if (loading) return <div className="flex justify-center items-center h-screen bg-gray-900 text-white"><Loader2 className="animate-spin mr-2"/> Verificando credenciais...</div>;
-
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-slate-900 text-center px-4">
@@ -121,7 +110,6 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
   return <AdminGate>{children}</AdminGate>;
 };
 
@@ -148,25 +136,6 @@ const AboutModal = ({ isOpen, onClose }: any) => {
   );
 };
 
-// --- NOVO: BOTÃO VOLTAR FLUTUANTE GLOBAL ---
-const GlobalBackButton = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Não mostrar na Home ('/')
-  if (location.pathname === '/') return null;
-
-  return (
-    <button 
-      onClick={() => navigate(-1)}
-      className="fixed bottom-6 left-6 z-[90] bg-white dark:bg-slate-800 text-gray-800 dark:text-white p-4 rounded-full shadow-2xl border border-gray-200 dark:border-slate-700 hover:scale-110 transition-transform active:scale-95 flex items-center gap-2 font-bold"
-    >
-      <ArrowLeft size={24} />
-      <span className="hidden md:inline">Voltar</span>
-    </button>
-  );
-};
-
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
@@ -186,7 +155,9 @@ function AppContent() {
   // Estados Globais
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [userProductCount, setUserProductCount] = useState(0);
+  
+  // ✅ MUDANÇA: O contador agora vem direto do perfil
+  const usageCount = userProfile?.posts_created_total || 0;
 
   // Dados
   const [products, setProducts] = useState<Product[]>([]);
@@ -272,19 +243,12 @@ function AppContent() {
 
   const handleUserLogin = useCallback(async (authUser: any) => {
     setUser(authUser);
+    // Aqui buscamos o perfil, que JÁ CONTÉM o 'posts_created_total'
     const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
     if (data) {
       setUserProfile(data);
       if (!data.whatsapp) setShowPhoneModal(true);
       setTempName(data.full_name || '');
-      
-      const { count } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', authUser.id)
-        .neq('status', 'sold');
-      
-      setUserProductCount(count || 0);
     }
   }, []);
 
@@ -298,7 +262,6 @@ function AppContent() {
         else { 
           setUser(null); 
           setUserProfile(null);
-          setUserProductCount(0);
         }
       });
 
@@ -328,11 +291,13 @@ function AppContent() {
     if (!user) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (data) {
-      setUserProfile(data);
-      showToast('Plano atualizado com sucesso!', 'success');
+      setUserProfile(data); // Isso atualiza o contador na tela
+      showToast('Perfil atualizado!', 'success');
     }
   }, [user, showToast]);
 
+  // --- LÓGICA BLINDADA DE VENDAS ---
+  // Agora usamos 'usageCount' (que vem do perfil)
   const canUserSell = useCallback(() => {
     if (!user) return false;
     if (userProfile?.role === 'admin') return true;
@@ -341,8 +306,8 @@ function AppContent() {
     if (isVip) return true;
 
     const limit = userProfile?.posts_limit || 6;
-    return userProductCount < limit;
-  }, [user, userProfile, userProductCount]);
+    return usageCount < limit; // Compara Histórico Total < Limite
+  }, [user, userProfile, usageCount]);
 
   // --- ACTION HANDLERS ---
 
@@ -413,20 +378,17 @@ function AppContent() {
     } else {
         const { error: err } = await supabase.from('products').insert([payload]);
         error = err;
-        
-        if (!err) {
-            const { count } = await supabase
-                .from('products')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .neq('status', 'sold');
-            setUserProductCount(count || 0);
-        }
     }
 
     if (!error) {
         showToast('Sucesso!', 'success');
-        fetchProducts();
+        
+        // --- ATUALIZA O PERFIL IMEDIATAMENTE PARA PEGAR O NOVO CONTADOR ---
+        if (!editingProduct) {
+            await refreshUserProfile(); 
+        }
+        
+        await fetchProducts();
         setShowSellForm(false);
         setEditingProduct(null);
         navigate('/');
@@ -442,8 +404,7 @@ function AppContent() {
     if(!error) {
         setProducts(prev => prev.filter(p => p.id !== productId));
         showToast('Apagado.', 'success');
-        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'sold');
-        setUserProductCount(count || 0);
+        // Deletar NÃO diminui o uso (regras de negócio)
     }
   };
 
@@ -453,8 +414,6 @@ function AppContent() {
     if(!error) {
         setProducts(prev => prev.map(p => p.id === productId ? {...p, status: 'sold'} : p));
         showToast('Vendido!', 'success');
-        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'sold');
-        setUserProductCount(count || 0);
     }
   };
 
@@ -499,7 +458,7 @@ function AppContent() {
         onSearch={setSearch} 
         user={user}
         userProfile={userProfile}
-        userProductCount={userProductCount}
+        userProductCount={usageCount} // Agora enviamos o contador vitalício para a Navbar
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
       />
@@ -509,9 +468,6 @@ function AppContent() {
              {toast.msg}
           </div>
       )}
-
-      {/* BOTÃO VOLTAR FLUTUANTE (Novo!) */}
-      <GlobalBackButton />
 
       {/* MODAL TELEFONE */}
       {showPhoneModal && (
@@ -544,18 +500,29 @@ function AppContent() {
           {/* ROTA HOME */}
           <Route path="/" element={
             <div className="pt-4">
-              <FilterBar activeCat={selectedCategory} activeProv={selectedProvince} onSelectCat={setSelectedCategory} onSelectProv={setSelectedProvince} />
+              <FilterBar 
+                 activeCat={selectedCategory} activeProv={selectedProvince} 
+                 onSelectCat={setSelectedCategory} onSelectProv={setSelectedProvince} 
+              />
               <div className="flex-1">
                  <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold">
-                       {selectedCategory || 'Tudo'} {selectedProvince && <span className="text-indigo-600 text-lg ml-1">em {selectedProvince}</span>}
+                       {selectedCategory || 'Tudo'} 
+                       {selectedProvince && <span className="text-indigo-600 text-lg ml-1">em {selectedProvince}</span>}
                        <span className="text-gray-400 text-sm ml-2">({filteredProducts.length})</span>
                     </h2>
                  </div>
                  {isLoading ? <Loader2 className="animate-spin mx-auto text-indigo-600" size={40} /> : 
                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                       {filteredProducts.map(p => (
-                        <ProductCard key={p.id} product={p} onAddToCart={handleAddToCart} onClick={handleProductClick} isLiked={favorites.has(p.id)} onToggleLike={(prod) => handleToggleFavorite(prod.id)} currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} onDelete={handleDeleteProduct} onEdit={(prod) => { setEditingProduct(prod); setShowSellForm(true); }} userProfile={userProfile} />
+                        <ProductCard 
+                          key={p.id} product={p} 
+                          onAddToCart={handleAddToCart} onClick={handleProductClick} 
+                          isLiked={favorites.has(p.id)} onToggleLike={(prod) => handleToggleFavorite(prod.id)} 
+                          currentUserId={user?.id} onMarkAsSold={handleMarkAsSold} 
+                          onDelete={handleDeleteProduct} onEdit={(prod) => { setEditingProduct(prod); setShowSellForm(true); }}
+                          userProfile={userProfile}
+                        />
                       ))}
                    </div>
                  }
@@ -598,14 +565,18 @@ function AppContent() {
                   <div className="h-[400px] md:h-[500px] bg-gray-100 relative">
                      <img src={activeImage || selectedProduct.imageUrl} className="w-full h-full object-cover transition-opacity duration-300" alt={selectedProduct.title} decoding="async" />
                      <button onClick={() => handleToggleFavorite(selectedProduct.id)} className="absolute top-4 right-4 p-3 bg-white/90 rounded-full shadow-lg hover:scale-110 transition-transform"><Heart size={24} className={favorites.has(selectedProduct.id) ? "fill-red-500 text-red-500" : "text-gray-600"} /></button>
+                     
                      {selectedProduct.images && selectedProduct.images.length > 1 && (
                        <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto p-1 scrollbar-hide">
                           {selectedProduct.images.map((img, idx) => (
-                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-indigo-500 scale-105' : 'border-white opacity-80'}`}><img src={img} className="w-full h-full object-cover" loading="lazy" /></button>
+                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-indigo-500 scale-105' : 'border-white opacity-80'}`}>
+                                <img src={img} className="w-full h-full object-cover" loading="lazy" />
+                             </button>
                           ))}
                        </div>
                      )}
                   </div>
+                  
                   <div className="p-6 md:p-8 flex flex-col">
                      <span className="text-indigo-600 font-bold text-xs uppercase mb-2 tracking-wide">{selectedProduct.category}</span>
                      <h1 className="text-2xl md:text-3xl font-black mb-2 leading-tight dark:text-white">{selectedProduct.title}</h1>
@@ -614,7 +585,10 @@ function AppContent() {
                      
                      <div className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl mb-6 flex items-center gap-3">
                         <img src={`https://ui-avatars.com/api/?name=${selectedProduct.sellerName}`} className="w-12 h-12 rounded-full" />
-                        <div><p className="font-bold text-sm dark:text-white">{selectedProduct.sellerName}</p><p className="text-xs text-gray-500">Vendedor</p></div>
+                        <div>
+                            <p className="font-bold text-sm dark:text-white">{selectedProduct.sellerName}</p>
+                            <p className="text-xs text-gray-500">Vendedor</p>
+                        </div>
                      </div>
 
                      <div className="text-gray-600 dark:text-gray-300 mb-8 prose dark:prose-invert text-sm md:text-base custom-scrollbar overflow-y-auto max-h-[200px]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedProduct.description) }} />
@@ -622,7 +596,9 @@ function AppContent() {
                      <div className="mt-auto space-y-3">
                        {(user?.id === selectedProduct.sellerId || userProfile?.role === 'admin') ? (
                           <div className="flex flex-col gap-2">
-                             {user?.id === selectedProduct.sellerId && <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">Editar Anúncio</button>}
+                             {user?.id === selectedProduct.sellerId && (
+                               <button onClick={() => { setEditingProduct(selectedProduct); setShowSellForm(true); }} className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">Editar Anúncio</button>
+                             )}
                              <button onClick={() => handleDeleteProduct(selectedProduct.id)} className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition-colors">Apagar Anúncio</button>
                           </div>
                        ) : (
@@ -688,7 +664,7 @@ function AppContent() {
                    </div>
                    <div className="bg-gray-50 dark:bg-slate-700/50 p-3 rounded-xl">
                       <p className="text-xs text-gray-500 uppercase font-bold">Limite</p>
-                      <p className="font-bold text-indigo-600 dark:text-indigo-400">{userProductCount} / {userProfile?.posts_limit || 6}</p>
+                      <p className="font-bold text-indigo-600 dark:text-indigo-400">{usageCount} / {userProfile?.posts_limit || 6}</p>
                    </div>
                 </div>
 
@@ -722,11 +698,25 @@ function AppContent() {
       </main>
 
       <Footer onOpenAbout={() => setShowAboutModal(true)} />
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
-      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
-      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
-      {showPlansModal && user && <PlansModal onClose={() => setShowPlansModal(false)} userEmail={user.email} userId={user.id} onSuccess={refreshUserProfile} />}
       
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+      
+      {/* SELL FORM AGORA RECEBE userProfile CORRETAMENTE */}
+      {showSellForm && <SellForm onClose={() => { setShowSellForm(false); setEditingProduct(null); }} onSubmit={handleSellSubmit} initialData={editingProduct} user={user} userProfile={userProfile} />}
+      
+      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+      
+      {/* MODAL DE PLANOS */}
+      {showPlansModal && user && (
+          <PlansModal 
+             onClose={() => setShowPlansModal(false)} 
+             userEmail={user.email} 
+             userId={user.id}
+             onSuccess={refreshUserProfile}
+          />
+      )}
+      
+      {/* MODAL DE PAGAMENTO WHATSAPP */}
       {showPaymentModal && (
          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4 animate-fade-in">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
