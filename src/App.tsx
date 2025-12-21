@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+// --- CORREÇÃO AQUI: Adicionado 'useLocation' nos imports ---
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
@@ -14,7 +15,7 @@ import { Product, CartItem, UserProfile, ViewState } from './types';
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft, Ban
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -141,7 +142,10 @@ const AboutModal = ({ isOpen, onClose }: any) => {
 const GlobalBackButton = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Não mostrar na Home ('/')
   if (location.pathname === '/') return null;
+
   return (
     <button 
       onClick={() => navigate(-1)}
@@ -172,6 +176,8 @@ function AppContent() {
   // Estados Globais
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  
+  // ✅ MUDANÇA: O contador agora vem direto do perfil
   const usageCount = userProfile?.posts_created_total || 0;
 
   // Dados
@@ -475,7 +481,7 @@ function AppContent() {
 
   // Verifica bloqueio visualmente para o botão
   const isBlockedUser = userProfile?.status === 'blocked';
-  const limitReached = !userProfile?.plan && usageCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin';
+  // const limitReached = !userProfile?.plan && usageCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin'; // Removed as unused
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
@@ -499,6 +505,7 @@ function AppContent() {
           </div>
       )}
 
+      {/* BOTÃO VOLTAR FLUTUANTE (Novo!) */}
       <GlobalBackButton />
 
       {showPhoneModal && (
