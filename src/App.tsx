@@ -15,7 +15,7 @@ import { Product, CartItem, UserProfile, ViewState } from './types';
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft, Ban, Image as ImageIcon
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
