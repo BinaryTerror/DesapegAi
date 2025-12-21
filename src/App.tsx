@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-// --- CORREÇÃO AQUI: Adicionado 'useLocation' nos imports ---
+// IMPORTANTE: useLocation adicionado
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
@@ -8,6 +8,7 @@ import FilterBar from './components/FilterBar';
 import { AuthModal } from './components/AuthModal';
 import { AdminPanel } from './components/AdminPanel';
 import { PlansModal } from './components/PlansModal';
+import { TermsModal } from './components/TermsModal'; // IMPORTANTE: Novo componente
 import { supabase } from './lib/supabaseClient';
 import { Product, CartItem, UserProfile, ViewState } from './types';
 
@@ -142,10 +143,7 @@ const AboutModal = ({ isOpen, onClose }: any) => {
 const GlobalBackButton = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Não mostrar na Home ('/')
   if (location.pathname === '/') return null;
-
   return (
     <button 
       onClick={() => navigate(-1)}
@@ -176,8 +174,6 @@ function AppContent() {
   // Estados Globais
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  
-  // ✅ MUDANÇA: O contador agora vem direto do perfil
   const usageCount = userProfile?.posts_created_total || 0;
 
   // Dados
@@ -210,11 +206,36 @@ function AppContent() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   
+  // -- NOVOS MODAIS DE TERMOS ---
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsMandatory, setTermsMandatory] = useState(false);
+
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
 
   // --- EFEITOS ---
+
+  // VERIFICAÇÃO DE TERMOS NO LOGIN
+  useEffect(() => {
+    if (user) {
+      const hasAccepted = localStorage.getItem('desapegai_terms_accepted');
+      if (!hasAccepted) {
+        setTermsMandatory(true); // Bloqueante
+        setShowTerms(true);
+      }
+    }
+  }, [user]);
+
+  const handleOpenTermsFromMenu = () => {
+      setTermsMandatory(false); // Leitura voluntária
+      setShowTerms(true);
+  };
+
+  const handleDeclineTerms = async () => {
+      await supabase.auth.signOut();
+      window.location.reload();
+  };
 
   useEffect(() => { if (selectedProduct) setActiveImage(selectedProduct.imageUrl); }, [selectedProduct?.id]);
 
@@ -481,7 +502,7 @@ function AppContent() {
 
   // Verifica bloqueio visualmente para o botão
   const isBlockedUser = userProfile?.status === 'blocked';
-  // const limitReached = !userProfile?.plan && usageCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin'; // Removed as unused
+  // const limitReached = !userProfile?.plan && usageCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
@@ -497,6 +518,7 @@ function AppContent() {
         userProductCount={usageCount}
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
+        onOpenTerms={handleOpenTermsFromMenu} // NOVO: Passa o handler para a navbar
       />
 
       {toast && (
@@ -505,9 +527,10 @@ function AppContent() {
           </div>
       )}
 
-      {/* BOTÃO VOLTAR FLUTUANTE (Novo!) */}
+      {/* BOTÃO VOLTAR FLUTUANTE */}
       <GlobalBackButton />
 
+      {/* MODAL TELEFONE */}
       {showPhoneModal && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative shadow-2xl">
@@ -752,6 +775,15 @@ function AppContent() {
              userId={user.id}
              onSuccess={refreshUserProfile}
           />
+      )}
+      
+      {/* MODAL DE TERMOS */}
+      {showTerms && (
+        <TermsModal 
+           onClose={() => setShowTerms(false)} 
+           isMandatory={termsMandatory} 
+           onDecline={handleDeclineTerms}
+        />
       )}
       
       {/* MODAL DE PAGAMENTO WHATSAPP */}
