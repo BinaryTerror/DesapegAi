@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import SellForm from './components/SellForm';
@@ -14,7 +14,7 @@ import { Product, CartItem, UserProfile, ViewState } from './types';
 import { 
   ShoppingBag, Trash2, ArrowRight, Loader2, CheckCircle, 
   PlusCircle, XCircle, Heart, Share2, Flag, PenLine, CreditCard, 
-  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft
+  MapPin, AlertTriangle, Lock, ChevronLeft, Globe, MessageCircle, Copy, Crown, ShieldAlert, Unlock, ArrowLeft, Ban
 } from 'lucide-react';
 import DOMPurify from 'dompurify'; 
 
@@ -141,10 +141,7 @@ const AboutModal = ({ isOpen, onClose }: any) => {
 const GlobalBackButton = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Não mostrar na Home ('/')
   if (location.pathname === '/') return null;
-
   return (
     <button 
       onClick={() => navigate(-1)}
@@ -175,8 +172,6 @@ function AppContent() {
   // Estados Globais
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  
-  // ✅ O contador agora vem direto do perfil
   const usageCount = userProfile?.posts_created_total || 0;
 
   // Dados
@@ -320,6 +315,9 @@ function AppContent() {
     if (!user) return false;
     if (userProfile?.role === 'admin') return true;
 
+    // 1. CHECAGEM DE BLOQUEIO (NOVO!)
+    if (userProfile?.status === 'blocked') return false;
+
     const isVip = userProfile?.plan === 'vip' && new Date(userProfile.premium_until || '') > new Date();
     if (isVip) return true;
 
@@ -336,6 +334,13 @@ function AppContent() {
         setShowAuthModal(true); 
         return;
       } 
+      
+      // Checagem de bloqueio específica para navegação
+      if (userProfile?.status === 'blocked') {
+          showToast('Sua conta está suspensa. Entre em contato com o suporte.', 'error');
+          return;
+      }
+
       if (canUserSell()) {
          setEditingProduct(null); 
          setShowSellForm(true);
@@ -401,7 +406,6 @@ function AppContent() {
     if (!error) {
         showToast('Sucesso!', 'success');
         
-        // --- ATUALIZA O PERFIL IMEDIATAMENTE PARA PEGAR O NOVO CONTADOR ---
         if (!editingProduct) {
             await refreshUserProfile(); 
         }
@@ -411,7 +415,12 @@ function AppContent() {
         setEditingProduct(null);
         navigate('/');
     } else {
-        showToast('Erro ao salvar.', 'error');
+        // Trata erro de RLS (Bloqueio)
+        if (error.code === '42501' || error.message.includes('policy')) {
+            showToast('Erro: Sua conta pode estar bloqueada.', 'error');
+        } else {
+            showToast('Erro ao salvar.', 'error');
+        }
     }
     setIsLoading(false);
   };
@@ -464,6 +473,10 @@ function AppContent() {
     setShowPaymentModal(false);
   };
 
+  // Verifica bloqueio visualmente para o botão
+  const isBlockedUser = userProfile?.status === 'blocked';
+  const limitReached = !userProfile?.plan && usageCount >= (userProfile?.posts_limit || 6) && userProfile?.role !== 'admin';
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col relative">
       <Navbar 
@@ -475,7 +488,7 @@ function AppContent() {
         onSearch={setSearch} 
         user={user}
         userProfile={userProfile}
-        userProductCount={usageCount} // Envia o contador vitalício para a Navbar
+        userProductCount={usageCount}
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
       />
@@ -486,10 +499,8 @@ function AppContent() {
           </div>
       )}
 
-      {/* BOTÃO VOLTAR FLUTUANTE (Novo! Pequeno e discreto) */}
       <GlobalBackButton />
 
-      {/* MODAL TELEFONE */}
       {showPhoneModal && (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl w-full max-w-sm relative shadow-2xl">
@@ -505,13 +516,13 @@ function AppContent() {
       <button 
         onClick={() => handleNavigate('SELL')} 
         className={`fixed bottom-6 right-6 z-[90] px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 border-2 border-white dark:border-slate-800 font-bold transition-transform hover:scale-105 active:scale-95 ${
-          (!user || canUserSell()) 
+          (!user || (canUserSell() && !isBlockedUser)) 
             ? 'bg-indigo-600 text-white shadow-indigo-500/30' 
-            : 'bg-gray-500 text-gray-200 cursor-not-allowed shadow-gray-500/30'
+            : isBlockedUser ? 'bg-red-500 text-white shadow-red-500/30' : 'bg-gray-500 text-gray-200 cursor-not-allowed shadow-gray-500/30'
         }`}
       >
-        {(!user || canUserSell()) ? <PlusCircle size={24} /> : <Lock size={24} />}
-        <span>Vender</span>
+        {isBlockedUser ? <Ban size={24}/> : ((!user || canUserSell()) ? <PlusCircle size={24} /> : <Lock size={24} />)}
+        <span>{isBlockedUser ? 'Bloqueado' : 'Vender'}</span>
       </button>
 
       <main className="pt-24 px-4 max-w-7xl mx-auto w-full min-h-screen">
